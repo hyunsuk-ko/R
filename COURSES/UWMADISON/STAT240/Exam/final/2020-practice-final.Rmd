@@ -1,0 +1,412 @@
+---
+output: html_document
+geometry: margin=0.75in
+fontsize: 12pt
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,message=FALSE, cache=FALSE, warning=FALSE)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+
+# Fall 2020 STAT 240 Practice Final 
+
+#### Due N/A
+
+### Preliminaries
+
+This practice final exam aims to provide you with an example of the format of the final exam.  Our final exam is scheduled for Saturday, December 12, 2020 (12:00 AM CT - 11:59 PM CT).  You will have 24 hours to complete the exam, and your solutions should be uploaded to Canvas by 11:59 PM CT (the time zone in Madison, WI).  Note that the content of our actual final exam will cover material from the whole semester.  
+
+A few additional things to keep in mind about the actual final exam: 
+
+- You are not allowed to communicate with anyone using any means (email, phone, text, social media, online discussion platforms, etc.) except the instructors of this course.  You are allowed to use materials from the course and the internet.  Before taking the final, you will need to agree to following an honor code policy.   
+- If you have questions during the exam, plan to post your questions on a *private* post on Piazza.  To do this, select the "Individual Student(s) / Instructor(s)" option next to "Post to:" when creating your post.  
+- While you have until 11:59 PM CT to submit your exam, it is recommended that you begin the exam as soon as possible and read over it to see if you have any questions.  You can expect for questions to be addressed during normal working hours in Madison, WI (9 AM CT - 5 PM CT).  Questions posted outside that window *may* still be addressed.
+
+
+### Data
+
+The following data files are need to complete this exam:  *exoplanets-3sept2020.csv*, *baseball_players.csv*, *danish-children.csv*
+
+
+# Problems
+
+## Short Answer Questions
+
+### Problem 1
+
+Which statements are true about the density $f$ of a continuous random variable $X$? **Select all correct responses.**
+
+(a) The area under $f$ and above the x-axis is equal to one.
+(b) For every possible value $x$, it must be true that $f(x) \geq 0$.
+(c) The function $f$ must have a unique maximum.
+(d) $0 \leq f(x) \leq 1$ for all possible values $x$.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+### Problem 2
+
+Which function from the `lubridate` package would you use to convert strings formatted such as "December 19, 2019" into a date?
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+### Problem 3
+
+Write a regular expression that matches part of a string which contains one or more plus signs followed by exactly three digits.
+Then, represent this regular expression as a string as you would need in order to use it in R.
+
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+### Problem 4
+
+What is a p-value?
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+### Problem 5
+
+The weights of oranges packaged by an orchard are Normally distributed with a mean of 14 oz. and a standard deviation of 2 oz.  Five oranges will be randomly selected from a very large package with thousands of oranges. What is the distribution of the number of oranges in the sample that weigh more than 18 oz? 
+Name the distribution and the corresponding parameters.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+### Problem 6
+
+What do we hope to capture within a confidence interval? **Select all correct responses.**
+
+(a) The unknown confidence level. 
+(b) The parameter estimate. 
+(c) The unknown statistic.
+(d) The unknown parameter. 
+(e) The margin of error. 
+(f) The sample size. 
+(g) None of the above.
+
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+
+### Problem 7
+
+
+Suppose you have a sample of size n = 50 drown from a normally-distributed population with a known standard deviation of 4.  You find that the sample mean is 10. Compute an 80% confidence interval for the mean of the population.
+
+```{r}
+
+```
+
+
+
+
+
+
+## Exoplanet Questions
+
+
+### Problem 8
+
+```{r data-import-exoplanets}
+## Read in the csv file
+## Select confirmed planets, rename some variables
+planets <- read_csv("../../data/exoplanets-3sept2020.csv") %>%
+  filter(default_flag == 1) %>%
+  select(pl_name, hostname, discoverymethod, disc_year, sy_pnum, pl_rade, pl_bmasse) %>%
+  rename(planet=pl_name, star=hostname, method=discoverymethod, year=disc_year,
+         number=sy_pnum, radius=pl_rade, mass=pl_bmasse)
+```
+
+The code block above creates a data frame with confirmed exoplanets and a selection of renamed variables. Modify this data frame to create a new one named `exoplanets` by:
+
+- eliminating cases where both *radius* and *mass* are missing;
+- elimating all cases discovered using the following methods:  Astrometry, Disk Kinematics, Pulsation Timing Variations, and Orbital Brightness Modulation
+- adding a variable *index* which runs from 1 to the number of rows in this new data set;
+- removing all variables except the following, and order the remaining variables as 
+    - index
+    - planet
+    - star
+    - method
+    - radius
+    - mass
+    
+Using the resulting `exoplanet` table, print a summary table that displays the count of exoplanets discovered by method.
+
+    
+```{r}
+
+
+
+```
+    
+    
+
+    
+### Problem 9
+
+Using the `exoplanets` data frame, create a scatterplot of mass vs. radius and adjust both axes to be on the log10 scale.  Add a straight line and a smooth curve to the plot using different colors, but without confidence bands.  Add a descriptive title and axis labels.
+
+    
+```{r}
+
+
+
+```
+    
+
+
+
+
+### Problem 10
+
+Create a new data frame named `mr` that only keeps cases with estimated mass measurements between 2 and 127 Earth mass, and remove cases with missing mass or radius measurements.  Using mass as the response variable and radius as the explanatory variable, fit a power-law model and write out the estimated model on the original scale.  (You can fit the model on the log10 scale, but then you will need to convert it to the original scale.)  Using your estimated model, what is the predicted mass (in Earth Mass) if the radius is 2.75 Earth Radius?
+
+```{r}
+
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+
+### Problem 11
+
+In the previous question you fit a power-law model to the mass and radius, and in this question we want to test if a power-law model is necessary rather than simply using a linear model for the mass radius relationship for the `mr` data.  The hypothesis test can be specified as follows where $\theta$ is the exponent in the power-law model.
+
+$$
+H_0:  \theta = 1
+$$
+$$
+H_a: \theta \neq 1
+$$
+
+That is, if $\theta=1$ then the relationship between mass and radius is linear.
+
+Carryout the hypothesis test, report the p-value, and interpret the result.
+
+
+```{r}
+
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+## Baseball Question
+
+Data for the next question are contained in a file obtained from Sean Lahman's Baseball Database.  
+
+- *baseball_players.csv*
+   - This data file contains information on individual players.  
+   
+  Variables:  
+   - `playerID` - A unique code assigned to each player 
+   - `birthYear` - The year the player was born  
+   - `deathYear` -  The year the player died
+   - `nameFirst` - The first name of the player    
+   - `nameLast` -  The last name of the player  
+   - `bats` - The player's batting hand  
+   - `throws` - The player's throwing hand  
+   - `debut` - The date of the player's first major league appearance  
+   - `finalGame` - The date of the player's final major league appearance (it is blank if the player is still active)  
+
+
+
+
+### Problem 12
+
+Has the *distribution* of player's batting and throwing hands changed across the decades?
+
+The following questions parts work toward analyzing this question.
+
+**(a)** Create a data frame that includes `playerID`, `bats`, `throws`, and `debut`.  You can remove any missing values after creating this data frame.  We will use `debut` to place a player in a decade so add a variable called `debut_decade` that specifies the decade each player began his major league career.  For example, the decade `1980` would include debut years 1980 - 1989.  The variable `bats` indicates a player's batting hand with options `L` (left), `R` (right), or `B` (both, if they can bat either way).  The variable `throws` indicates a player's throwing hand with options `L` (left) or `R` (right).  For `bats` and `throws`, remove any observations that do not have the values noted.
+
+Use the function `head()` to print the first 6 rows of this data frame.
+
+
+```{r}
+
+```
+
+
+
+
+
+
+
+**(b)** Since we are interested in the distribution of batting and throwing hands by decade, we want to figure out the percentage of players in each decade who bat and throw with the various hand combinations.  Since there are three options for batting hands (`R`, `L`, `B`) and two for throwing hands (`R`, `L`) there are six possible combinations of batting and throwing hands (bats right and throws right, bats both and throws right, etc.).  For this part of the question, create a data frame that ultimately has a column for the `debut_decade`, a column for `bats`, a column for `throws`, and a new column `percents`.  The new column `percents` should have the percent of each batting hand and throwing hand by decade (so that if you summed up `percents` by `debut_decade` you would get 100%).
+
+Use the function `head()` to print the first 6 rows of this data frame.
+
+The code has been started for you along with some hints on additional steps needed.  It assumes your resulting data frame from part (a) is called `hands_1`, but you can change it to whatever your data frame was named.  The code is provide to be helpful for you.  If you want to take a different approach to get the same result, you are welcome to do that.
+
+```{r, eval = FALSE}
+### Optional starting code for your solution; 
+### change `eval=FALSE` to `eval=TRUE` if you decide to use this
+
+## Change hands_1 to whatever you named your data frame from (a)
+hands_2 <- hands_1 %>% 
+  select(-debut) %>%
+  ## The next two lines compute the counts for the different bat/throw combinations by decade
+  group_by(debut_decade, bats, throws) %>% 
+  summarize(n=n()) %>%
+  ##  Next you want to get the count totals by decade; fill in the `XXX` with the appropriate terms 
+  ##  in order to create a wider data frame that has debut_decade by row
+  ##  and the bat/throw combinations as the columns.
+  ##  values_fill specifies which value to put in place of missing combinations 
+  ##  - specify a value that makes sense in this context
+  pivot_wider(id_cols=XXX, names_from=XXX, values_from = XXX, values_fill = XXX) %>%
+  ##  Add a variable that has the total counts per decade
+  mutate(total = XXX) %>%
+  ##  Add variables that indicate the percent of each bat/throw combination
+  mutate(perc_B_R = XXX,
+         perc_L_L = XXX,
+         perc_L_R = XXX,
+         perc_R_L = XXX,
+         perc_R_R = XXX,
+         perc_B_L = XXX) %>%
+  select(-c(B_R, L_L, L_R, R_L, R_R, B_L, total)) %>% ## Remove variables no longer needed
+  ## Now that you have the percentages by decade for the bat/throw combinations, transform the
+  ## the data frame to a longer form that has the requested columns
+  pivot_longer(cols=XXX, names_to=XXX, names_sep=XXX, names_prefix=XXX, values_to=XXX)
+
+head(hands_2)
+
+## You may want to add a check here to verify that the sum of `percent` by decade
+## equals 100.
+```
+
+
+
+
+
+
+
+**(c)**  Using the data frame `hands_2` from (b), create a bar plot so that you can compare the distributions of batting and throwing hand combinations across the decades.  For the bar plot, set the x-axis to the batting hand and y-axis to percent.  Fill the bars with a color according to throwing hand, change the position of the bars so they are next to each other, and facet by the decade.  Add meaningful labels to the x-axis and y-axis, and add a descriptive title. 
+
+
+```{r}
+
+```
+
+
+
+
+
+**(d)**  Observing your graphic from part (c), does it appear that the distribution of player's batting and throwing hands have shifted significantly across the decades?  Explain.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+
+
+
+
+## Danish Children Questions
+
+Data for the next set of questions is in the file *danish-children*
+which was collected from all Danish families from 1960 to 1994
+with only single births.
+Each row is a summary of the number of children in a family in the data set
+with a given birth order, sex, and the sequence of the sexes of any previous children in the family.
+There are four columns in this data set.
+
+- `order` which is the birth order;
+- `sex` which is F or M depending on sex assigned at birth;
+- `previous` which is the sequence of sexes of previous children in the family;
+- `n` which is the count of the number of such children
+
+```{r, include = FALSE}
+denmark = read_csv("../../data/danish-children.csv")
+head(denmark, n=10)
+```
+
+For example, the collection of Danish families includes 16,814 girls who are the third child born in a family with older siblings that are a first-born girl and a second-born boy.
+Some of these girls were in families that had no more children,
+but others were in families that had four or more children.
+
+### Problem 13
+
+Find the total number of families, children, boys, and girls.
+
+
+
+
+
+### Problem 14
+
+Determine the number of families with three or more children.
+Tabulate the number of such families for each possible number of boys and girls among these first three children.
+Your table should have this form,
+but with counts instead of missing values.
+
+```{r}
+tab = tibble(boys = 0:3, girls = 3:0, n = rep(NA_integer_,4))
+tab
+```
+
+
+
+### Problem 15
+
+Let $X$ be the number of girls among the first three children in a family with three or more children.
+Use the tabulated data from the previous problem
+and conduct a likelihood ratio test to compare a binomial model for $X$
+with a general probability model on the values $x=0,1,2,3$.
+What is the p-value from this test, assuming that the null sampling distribution of the likelihood ratio test statistic is chi-square with the appropriate number of degrees of freedom?
+
+**(a)** What is the maximum likelihood estimate of $p$
+if $X_i \,\mid\, p \sim \text{Binomial}(3,p)$ for the $i$th family and these random variables are independent?
+
+
+**(b)** What are the maximum likelihood estimates of $p_0$, $p_1$, $p_2$, and $p_3$ under the general probability model where $p_k = P(X_i = k)$ for each $k$?
+
+**(c)** What is the value of the likelihood ratio test statistic,
+$G = 2(\ln L_1 - \ln L_0)$
+where $L_0$ and $L_1$ are the maximum likelihood values of the data under the null and general models?
+
+
+**(d)** What is the value of the p-value of the test?
+
+
+
+## Submission
+
+Once you have completed all of the questions, knit the R Markdown document to create an HTML file.  To submit this Exam, go to our Canvas site and select "Assignments" on the left panel, and upload both the edited .Rmd and HTML files to the place designated for the exam.
+

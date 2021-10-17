@@ -1,0 +1,178 @@
+---
+title: "STAT 240 Discussion 8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+## Group XXX 
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+
+## Questions
+
+### 1
+
+For each scenario, explain why the random variable does *not* have a binomial distribution.
+
+1. A bucket contains 10 colored tokens with five that are red and five that are blue. Four tokens are drawn at random from the bucket one at a time, but without replacing the tokens drawn. $X_1$ is the number of red tokens selected.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+2. A fair coin is tossed repeatedly until the tenth head is tossed. $X_2$ is the number of tails tossed prior to the tenth head.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+3. Four buckets each contain a total of five tokens each, some red and some blue. The number of red tokens in the buckets are 1, 2, 3, and 4 with blue tokens making up the remainder. One token is drawn at random from each bucket. $X_3$ is the total number of red tokens drawn.
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+### Information about `dbinom()`
+
+The function `dbinom(x, size, prob)` calculates binomial probabilities.
+
+- `x` is the possible outcome
+- `size` is the parameter $n$ for the total number of trials
+- `prob` is the single trial success probability $p$.
+
+The function is *vectorized* which means that each argument can be replaced by a vector of values instead of a single value.
+The length of the vector of the output will be whichever input vector is longest. Other values are repeated cyclically, if necessary.
+This will be easiest to use if we set two of the arguments to single values and only set one to be a vector of more than one value, but at times we will use vectors for more than one argument.
+
+##### Examples
+
+> $P(X = x)$ for $n=5$, $p=0.4$ and $x=0,\ldots,5$.
+
+```{r}
+dbinom(0:5, 5, 0.4)
+```
+
+> $P(X = 2)$ for $p = 0.4$ and $n = 1, 2, 4, 8, 16$.
+
+```{r}
+dbinom(2, 2^(0:4), 0.4)
+```
+
+> $P(X = 2)$ for $n=5$ and $p = 0.1, 0.3, 0.5, 0.7, 0.9$.
+
+```{r}
+dbinom(2, 5, seq(0.1, 0.9, 0.2))
+```
+
+Other functions such as `pbinom()` and `qbinom()` are also vectorized.
+
+### 2
+
+Create a data frame with columns `n`, `p`, `x`, `mu`, and `prob` where:
+
+- `n` varies from 2 to 100 by twos (so each `n` value is even);
+- `p` equals 0.5;
+- `x` is $n/2$;
+- `mu` is the mean of the distribution;
+- `prob` is $P(X = x)$
+
+Show the first few rows using `head()`.
+
+```{r}
+df <- data.frame(n = seq(2, 100, by=2), p = 0.5) %>%
+  mutate(x=)
+df
+```
+
+**(a)** What is the relationship between `x` and `mu`?
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+**(b)** Make a line graph of `prob` versus `n`.
+
+```{r}
+
+```
+
+**(c)** Describe the pattern: how does the probability that a random variable is equal to the mean (when the mean is a possible value) change as $n$ increases?
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+### 3
+
+The central limit theorem implies that the binomial distribution converges to a normal distribution as $n$ increases.
+This problem will examine one aspect of the convergence, namely the right tail probability of being more than two standard deviations above the mean,
+$P(X > \mu + 2\sigma)$.
+
+**(a)** What is the probability that a normal random variable with mean $\mu$ and standard deviation $\sigma$ exceeds $\mu + 2 \sigma$? Display answer rounded to four decimal places.
+
+```{r}
+
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+**(b)** 
+
+Create a data frame with columns `n`, `p`, `mu`, `sigma`, `x`, and `prob` where:  
+- `n` varies from 1 to 1000 by ones;  
+- `p` equals 0.5;  
+- `mu` is the mean of the distribution;  
+- `sigma` is the standard deviation of the distribution;  
+- `x` equals `mu` + 2*`sigma`;  
+- `prob` is $P(X > x)$  
+
+Display the first few rows of the data frame with `head()`.
+
+```{r}
+
+```
+
+**(c)** Plot the right tail probabilities versus $n$. Add a red, dashed, horizontal line at the value you found in part **(a)**.
+Add a smooth curve which lessens the visual impact of the oscillations due to the discreteness of the binomial distribution.
+
+```{r}
+
+```
+
+**(d)** Repeat parts **(b)** and **(c)** if $p = 0.005$.
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+**(e)**
+
+Ignoring the oscillations, how do the patterns of the two smooth curves in the graphs differ from one another, especially when $n$ is large?
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+### 4
+
+Draw graphs of the binomial distributions for $n=500$ and $p = 0.5$ and $p = 0.005$,
+scaled so that the x axis is restricted to where the probabilities are relatively large.  (One graph for each of the two $p$'s.)
+Overlay each plot with a red normal density with a mean and standard deviation that matches the mean and standard deviation of the corresponding binomial distribution.
+(Use functions in *gprob.R* for these graphs and set `scale=TRUE`.)
+
+Compare the skewness of the distributions. Comment on how this might help explain the differences in the right tail probabilities from Problem 3.
+
+```{r}
+
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE

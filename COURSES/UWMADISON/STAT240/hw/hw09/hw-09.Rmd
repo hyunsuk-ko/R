@@ -1,0 +1,215 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE)
+library(tidyverse)
+library(lubridate)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+## Assignment 9
+
+#### Due Friday, November 6, 11:59 PM CT
+
+### HYUN KO
+
+
+### Problems
+
+### 1
+
+> Read in the `chimpanzee.csv` data file.
+Consider only those trials with a partner. Make an assumption that there is a universal $p_{\text{partner}}$
+during which any chimpanzee would make a prosocial choice in a single trial under the experimental conditions we have been examining.
+Assume that all trials are independent. Under these assumptions, write down a statistical model for $X_1$,
+the total number of prosocial choices made with a partner present in this experiment.
+Test the hypothesis that $p_{\text{partner}} = 0.5$ versus the two-sided alternative that it does not. Report a p-value.
+Create a graph that shows the sampling distribution of $X_1$ under the null hypothesis and indicates (with different colors and/or lines) how the p-value relates to the graph. Interpret the results of the hypothesis test in context.
+
+```{r question-1}
+chimps <- read_csv("../../data/chimpanzee.csv") %>%
+  mutate(with_partner = case_when(
+    partner == "none" ~ FALSE,
+    TRUE ~ TRUE)) %>%
+  select(actor,partner,with_partner,everything())
+
+chimps_partner <- chimps %>%
+  select(actor, partner, with_partner, prosocial, selfish) %>%
+  filter(with_partner == TRUE) %>%
+  mutate(n = prosocial+selfish) %>%
+  summarize(prosocial=sum(prosocial),
+            selfish=sum(selfish),
+            n=selfish+prosocial)
+
+n <- chimps_partner$n
+prosocial <- chimps_partner$prosocial
+
+
+tol <- 1.0e-07 ## 10 ^(-7)
+x <- 0:n
+x_extreme <- x[dbinom(x,n,0.5) < dbinom(prosocial,n,0.5) + tol]
+
+p_value <- sum(dbinom(x_extreme,n,0.5))
+p_value
+
+gbinom(n,0.5,scale=TRUE, size = 2) +
+  geom_vline(xintercept=prosocial,color="red",
+             linetype="dashed", size = 1) + 
+  geom_vline(xintercept=n-prosocial,color="red",
+             linetype="dashed", size = 1) + 
+  geom_hline(yintercept=p_value,color="purple",
+             linetype="dashed", size = 2) + 
+  theme_bw()
+```
+: According to the result, the p_value is lesser than 0.01, thus highly statistically significant. As the null hypothesis is false, the probability for predicting 'prosocial' is close to the observed 359/610.
+
+### 2
+
+> Repeat the previous problem, but use the data for all trials without a partner for an assumed universal parameter $p_{\text{no partner}}$,
+using a statistical model for $X_2$,
+the total number of prosocial choices made without a partner present
+in this experiment.
+
+```{r question-2}
+chimps_nopartner <- chimps %>%
+  select(actor, partner, with_partner, prosocial, selfish) %>%
+  filter(with_partner == FALSE) %>%
+  mutate(n = prosocial+selfish) %>%
+  summarize(prosocial=sum(prosocial),
+            selfish=sum(selfish),
+            n=selfish+prosocial)
+
+n <- chimps_nopartner$n
+prosocial <- chimps_nopartner$prosocial
+
+tol <- 1.0e-07 ## 10 ^(-7)
+x <- 0:n
+x_extreme <- x[dbinom(x,n,0.5) < dbinom(prosocial,n,0.5) + tol]
+
+p_value <- sum(dbinom(x_extreme,n,0.5))
+p_value
+
+gbinom(n,0.5,scale=TRUE, size = 2) +
+  geom_vline(xintercept=prosocial,color="red",
+             linetype="dashed", size = 1) + 
+  geom_vline(xintercept=n-prosocial,color="red",
+             linetype="dashed", size = 1) +
+  geom_hline(yintercept=p_value, color="purple",
+             linetype="dashed", size=2) +
+  theme_bw()
+```
+
+As the p-value in this case is higher than 0.05, the null hypothesis should not be rejected, and $p_{\text{no partner}}$ is thought to be consistent with random assumption. 
+
+### 3
+
+
+> Hypothesis tests may also be used to compare population proportions.
+Here, we wish to test the null hypothesis that
+$p_{\text{partner}} = p_{\text{no partner}}$ versus the alternative that they are different.
+Notice that this hypothesis statement differs from the previous two in that there is no specific value for the proportions to be equal to if the null hypothesis is true.
+This problem will lead you through a randomization approach to test the hypothesis.
+
+##### (a)
+
+Let $p$ be the unknown shared probability of making the prosocial choice in a single trial if the null hypothesis is true.
+Write down statistical models for $X_1$ and $X_2$ defined in the previous problems under this hypothesis.
+
+$X_1$ ~ Binomial(610, $p_{\text{partner}}$)
+$X_2$ ~ Binomial(180, $p_{\text{no partner}}$)
+
+##### (b)
+
+Under the null hypothesis, what is a statistical model for $X = X_1 + X_2$?
+Use the combined data from the experiment with all trials with and without a partner to find the maximum likelihood estimate for $p$ assuming the null hypothesis is true.
+
+```{r question-3}
+chimp_summary<- chimps %>%
+  summarize(prosocial=sum(prosocial),
+            selfish=sum(selfish),
+            n=prosocial+selfish,
+            p_hat = prosocial/n)
+
+p = chimp_summary$p_hat
+p
+```
+
+##### (c)
+
+Use simulation to conduct the experiment $B = 10,000$ times using the value for $p$ estimated in the previous problem.
+This results in $B$ simulated values $X^*_1$ and $X^*_2$ from the assumed statistical model.
+For each corresponding replicate of the simulation,
+calculate a test statistic which is the difference in sample proportions.
+This collection of simulated proportion differences is a simulation-based estimate of the sampling distribution of the test statistic.
+Find the mean and standard deviation of this distribution.
+
+```{r question-4}
+N <- 10000
+
+chimp_df <- chimps %>%
+  group_by(with_partner) %>%
+  summarize(prosocial = sum(prosocial),
+            selfish = sum(selfish),
+            n = prosocial + selfish,
+            p_hat = prosocial / n)
+
+diff_df <- tibble(
+  p_hat_1 = rbinom(N, 610, chimp_summary$p_hat) / 610,
+  p_hat_2 = rbinom(N, 180, chimp_summary$p_hat) / 180,
+  diff= p_hat_1 - p_hat_2,
+  extreme = abs(diff) >= abs(chimp_df$p_hat[2] - chimp_df$p_hat[1])
+)
+
+
+p_value_e <- mean(diff_df$extreme)
+sd <- sd(diff_df$extreme)
+
+p_value_e
+sd
+```
+
+##### (d)
+
+What should the value of the the mean of the sampling distribution approach if we let $B$ approach infinity?
+What special two-word name is given to the standard deviation of this sampling distribution?
+
+
+##### (e)
+
+Display the distribution of the simulated sampling distribution.
+Add to this graph a vertical line which is the realized test statistic from the actual data.
+
+```{r question-5}
+ggplot(diff_df, aes(x=diff)) +
+  geom_density() +
+  geom_vline(xintercept = chimp_df$p_hat[2]-chimp_df$p_hat[1],color='red')+
+  theme_bw()
+```
+
+##### (f)
+
+Calculate the p-value for this hypothesis test.
+You may either directly report the proportion of extreme simulated proportion differences or make an approximation based on the shape of the sampling distribution to compute an area under an appropriate density curve.
+
+```{r question-6}
+diff = chimp_df$p_hat[2] - chimp_df$p_hat[1]
+random_diff = (rbinom(N,610,chimp_summary$p_hat) / 610)-(rbinom(N,180,chimp_summary$p_hat) / 180)
+mean(abs(random_diff)>=diff)
+```
+##### (g)
+
+Summarize the results of the hypothesis test in context.
+(In context means you should be discussing what the results say about the probabilities of chimpanzees making prosocial choices with or without partners, and not about statistical significance or rejecting hypotheses.)
+
+### 4
+
+> Write three criticisms of the assumptions made for the previous three hypothesis tests where reality may differ from the assumptions, possibly leading to misleading conclusions.
+
+- Each trial is continued under the assumption that repetitive trials are independent, however this is not necessarily true.
+
+- There is no ultimate and universal 'p' that can be applied to every trials.
+
+- 

@@ -1,0 +1,775 @@
+---
+title: "Cholesterol and Heart Disease"
+author: "Jessi Kehe"
+output: html_document
+---
+
+These lectures are based on materials from UC-Berkeley's Data8 course.
+
+### Setup details
+
+* You will need the packages `tidyverse` for these lectures.  
+
+* This assumes you have the R script `viridis.R` and `ggprob.R` two steps back from the working directory (`"../../scripts/viridis.R"`, `"../../scripts/ggprob.R"`).  Be sure to adjust the code if you have these scripts in different locations.
+
+* The following data files will be used and are assumed to be located two steps back from the working directory in a folder called `data/`.  Be sure to adjust the code if you have the data files in a different location.  
+`"../../data/causes_of_death.csv"`  
+`"../../data/framingham.csv"`   
+`"../../data/serum_cholesterol.csv"`  
+`"../../data/mortality_summary.csv"`  
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,message=FALSE,warning=FALSE,cache=TRUE,autodep=TRUE,cache.comments=FALSE)
+library(tidyverse)
+library(modelr)
+library(kableExtra)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+
+
+# Lecture:  Causes of Death
+
+In the upcoming lectures, we are going to be investigating some aspects of cardiovascular disease, which has been the leading cause of death in the world for decades.
+
+We'll begin by exploring a data set that reveals the major causes of death in the world from 1900 to 2015.
+
+```{r}
+causes <- read_csv("../../data/causes_of_death.csv") %>%
+  rename(age_adj_death_rate = `Age Adjusted Death Rate`)
+
+
+causes %>%
+  count(Year)
+
+causes %>%
+  count(Cause)
+
+ggplot(causes, aes(x=Year, y=age_adj_death_rate, color=Cause)) +
+  geom_line(size = 2) +
+  ylab("Age-adjusted death rate") +
+  ggtitle("Major causes of death in the world",
+          subtitle = "1900 - 2015")
+```
+
+
+- The five causes of death considered are Accidents, Cancer, Heart Disease, Influenze and Pneumonia, and Stroke  
+- The variable `age_adj_death_rate` is the age-adjusted death rate.   
+    - This is the death rate that would have existed if the population studied that year had the same age distribution as a baseline population.  
+    - Using these age-adjusted values allows us to compare values across years without concern about changing demographics.
+    
+- Notice that heart disease has had the highest death rate over the period of study.  
+    - There is a spike in 1918 with influenza and pneumonia surpassing heart disease; this was during the 1918 flu pandemic (aka the Spanish flu)  
+    - From about 1940 - 1960 heart disease seems to hit its peak, and has been on the decline since around 1960  
+    -  The decline may be attributed to broader awareness in some regions of the world of lifestyle factors associated with cardiovascular disease (e.g., smoking, poor diet, little or no exercise), or due to improved treatments
+    
+
+## The Framingham Heart Study
+
+- The Framingham Heart Study is a long-term observational study of heart disease  
+- It began in 1948 studying a group of over 5000 volunteer participants from Framingham, MA  
+- The study has continued for decades, where children of previous participants have been studied  
+- You can read an overview of the study [here](https://en.wikipedia.org/wiki/Framingham_Heart_Study)
+
+We are going to explore data on 3842 subjects from the first wave of the study, collected in 1956.
+
+```{r}
+fram <- read_csv("../../data/framingham.csv")
+fram
+```
+
+
+- There is one row for each subject in our data  
+- The first seven variables are measurements on a subject at the time of their initial medical exam when the study began  
+- `ANYCHD` indicates if the subject developed some form of heart disease at any point after the study began; 1 = yes, 0 = no  
+- Our data excludes subjects who already had heart disease as well as subjects with missing data  
+
+- You can read more about the history of the Framingham study [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1449227/)
+
+
+
+
+
+
+
+# Lecture:  Diabetes in the population
+
+Before we begin our investigation into cholesterol and heart disease, we'll first look at some limitations of this dataset. In particular, we will investigate a way in which this is or isn't a representative sample of the population by examining the proportion of subjects with diabetes.
+
+- We will eventually be carrying out an investigation about cholesterol using the Framingham data  
+- Before we move forward with the analysis, we are going to consider some limitations of the Framingham data  
+    - Are the Framingham data a representative sample of the population?  
+
+- One aspect of the Framingham data we can check is how the prevalence of diabetes in the sample compares with the population  
+- The Center for Disease Control (CDC) has [slides](https://www.cdc.gov/diabetes/statistics/slides/long_term_trends.pdf) discussing the prevalence of diagnosed diabetes (i.e., the percentage of the population who have it) in the U.S. around this time (1958);  the stated prevalence was 0.93%.  
+    - "The prevalence of diagnosed diabetes increased from 0.93% in 1958 to 7.40% in 2015. In 2015, 23.4 million people had diagnosed diabetes, compared to only 1.6 million in 1958."
+
+This is a great opportunity for us to carryout a hypothesis test!
+
+We are going to conduct a hypothesis test with the following null and alternative hypotheses:
+
+$$H_0: p = 0.0093$$ 
+
+- The probability that a participant within the Framingham Study has diabetes is equivalent to the prevalence of diagnosed diabetes within the population. (i.e., any difference is due to chance).
+
+$$H_a:  p \neq 0.0093$$  
+
+- The probability that a participant within the Framingham Study has diabetes is different than the prevalence of diagnosed diabetes within the population.
+
+
+If it is reasonable to consider that the number of participants diagnosed with diabetes follows a Binomial distribution, then *under the null* $X \sim \text{Binomial}(3842,0.0093)$, we can consider a hypothesis test using the test statistic based on $\hat{p} = \frac{X}{3842}$:
+$$
+z_p = \frac{\hat{p} - 0.0093}{\sqrt{0.0093(1-0.0093)/3842}}
+$$
+
+The test statistic $z_p$ is computed assuming the null hypothesis that $p = 0.0093$ is true.  This means the standard error is also computed under this assumption.
+
+```{r}
+p_pop <- 0.0093
+diabetes <- fram$DIABETES
+n <- length(diabetes)
+p_fram <- mean(diabetes)
+p_fram
+
+
+## Assuming the null is true, compute the test statistic:
+se_p <- sqrt(p_pop*(1-p_pop)/n)
+test_stat <- (p_fram - p_pop)/se_p
+test_stat
+```
+
+Now that we have the observed test statistic, we can calculate a p-value.  Under the null hypothesis, the sampling distribution is approximately normal as long as $p$ isn't too close to 0 or 1 or the sample size is large enough.  
+ 
+ - In our setting, $p$ is close to zero but the sample size may be large enough to overcome this.  But we will need to check this assumption.
+
+
+```{r}
+## p-value assuming normality 
+pnorm(abs(test_stat), lower.tail=FALSE)*2
+```
+    
+The p-value is very small suggesting that we can reject the null hypothesis that that proportion of Framingham participants with diagnosed diabetes is consistent with the population.  This implies that the particpants in the Framingham study may not be a representative sample of the US population in terms of some characteristics relevant for understanding cardiovascular disease.
+
+Let's investigate if the normality assumption is reasonable here by generating the null sampling distribution of $\hat{p}$.   
+
+- We generate a large sample of binomial random variables with n = 3842 and p = 0.0093  
+- From the large sample of binomials, calculate the sample proportions  
+- Then create a density plot from the sample and compare it to a normal density with the same mean and standard deviation
+
+```{r}
+N <- 100000
+x <- rbinom(N, n, p_pop)
+df <- tibble(phat = x/n)
+
+
+ggplot(df, aes(x=phat)) +
+  geom_density() +
+  geom_norm_density(mu=mean(x/n),sigma=sd(x/n), color="blue")
+
+```
+
+The sampling distribution of $\hat{p}$ assuming the null is true (black curve) looks very similar to the normal density (blue curve) suggesting our normality assumption holds.
+
+We are going to carryout this test using two different approaches in subsequent lectures.
+
+
+
+
+
+
+
+
+# Lecture:  Diabetes in the population - Binomial hypothesis test
+
+In the previous lecture, we carried out the following hypothesis test:
+$$H_0: p = 0.0093$$ 
+
+- The probability that a participant within the Framingham Study has diabetes is equivalent to the prevalence of diagnosed diabetes within the population. (i.e., any difference is due to chance).
+
+$$H_a:  p \neq 0.0093$$  
+
+- The probability that a participant within the Framingham Study has diabetes is different than the prevalence of diagnosed diabetes within the population.
+
+
+We are going to consider this same hypothesis test, but rather than basing our test statistic on $\hat{p}$, we are going to use $X$ as the test statistic.
+
+The null sampling distribution of the test statistic is then $X \sim \text{Binomial}(3842,0.0093)$.
+
+If the null hypothesis is true, then we expect that $X$ will be *close* to the mean, $\mu = 3842 \times 0.0093 = 35.7306$.  
+ 
+The standard deviation is $\sigma = \sqrt{3842(0.0093)(1-0.0093)} = 5.95$ so values from about 30 to 42 (within one standard deviation of the mean) would be typical.
+
+Let's plot the Binomial distribution under the null:
+
+```{r}
+gbinom(n, p_pop, a = qbinom(.001,n,p_pop),b = qbinom(.999,n,p_pop))
+```
+
+Next we can computed our observed test statistic
+```{r}
+x_fram <- sum(diabetes)  ## observed count
+x_fram
+```
+
+$x=105$ would be a very unusual value of our null distribution - it would be far into the upper tail (see on the previous plot)
+
+This is suggesting there will be a small p-value, which we compute next.
+
+```{r}
+np <- n*p_pop ## mean of X under null
+np
+x_fram - np ## distance between null mean and observed test statistic
+
+
+pbinom(x_fram, n, p_pop, lower.tail = FALSE)
+```
+
+The distance between the observed test statistic (105) and the mean of the null distribution (35.73) is 69.27.  We would usually compute a p-value as $P(X \geq 105) + P(X \leq 35.73-69.27)$, but the second probability is zero (since $X\geq 0$) so we only need to compute the $P(X \geq 105)$.
+
+Again, the p-value is very small suggesting that we can reject the null hypothesis.
+
+
+
+
+
+
+
+
+
+
+
+# Lecture:  Diabetes in the population - simulation hypothesis test
+
+
+In this lecture we are going to consider another approach to carryout the diabetes hypothesis test discussed in the previous lectures. 
+
+The first two hypothesis tests we used the Normal distribution and Binomial distribution to compute the p-values.  In the approach for this lecture, we are going to rely on simulation to calculate the p-value.
+
+First we will draw many samples from our null distribution, Binomial(3842, 0.0093), then we will compute the simulated proportions.
+
+There are different test statistics we could consider here.  One option is to take the absolute difference between the sample proportion and 0.0093.  We can calculate this using all of our simulated proportions as $|\hat{p} - 0.0093|$ in order to get an approximation to our null sampling distribution.
+
+Then we compare our observed test statistic, $|\hat{p}_{\text{framingham}}-0.0093|$, to the simulated sampling distribution.
+
+When deciding on a test statistic, it is important to determine what sorts of values would lead to rejecting the null hypothesis.  Since the test statistic has an absolute value, it turns out that large values of the test statistic can lead to rejection of the null.
+
+
+```{r}
+x_sim <- rbinom(100000, n, p_pop)
+sim_test_stat <- abs(x_sim/n - p_pop)
+
+observed_test_stat <- abs(p_fram - p_pop)
+observed_test_stat
+```
+
+Our observed test statistic is 0.018; let see how this compares to the distribution of our simulated test statistics:
+
+```{r}
+df_sim <- tibble(stat = sim_test_stat) 
+
+ggplot(df_sim, aes(x=stat)) +
+  geom_histogram(boundary=0, color="black",fill="cyan") +
+  geom_vline(aes(xintercept=observed_test_stat), color="red",linetype="dashed")
+```
+
+The vertical red dashed line is indicating the location of our observed test statistic.  It is far in the upper tail suggesting that what we observed from the Framingham participants does not appear to be consistent with the population value.  
+
+The p-value can be estimated by checking the proportion of the simulated test statistics that are greater than or equal to our observed test statistic.
+
+```{r}
+## Simulated p-value
+mean(sim_test_stat>=observed_test_stat)
+```
+
+We get an estimated p-value here of zero, which again suggests that we can reject the null hypothesis, and conclude that the prevalence of diabetes diagnoses in our Framingham sample is different from the prevalence in the US population.
+
+- Why isn't the Framingham sample more representative of the population?  There could be different reasons for this.  First, the participants volunteered for the study rather than being selected randomly.  Perhaps more people with known conditions such as diabetes wanted to volunteer.  Also, the study is based in Framingham, MA so it possible that town is not representative of the broader US population.  
+- In real-world studies it is very challenging to get a sample of partipants that is truly representative of the population.  Geographical, socioeconomic, community, and class factors (among others) would likely need to be accounted for in obtaining such a sample.  
+- To get a more representative sample, it would also be necessary to ensure that the medical exams were standardized across different participants.  
+- Hence, obtaining such a representative sample would likely have a higher cost of collecting the data.  
+-  Despite these concerns, the Framingham study collected high-quality medical data from its subjects, even if the subjects may not be a perfect representation of the population of all Americans.  
+- We are going to keep using these data, but will need to keep their limitations in mind.
+
+
+
+
+
+
+
+
+
+
+
+# Lecture:  Cholesterol and Heart Disease
+
+One of the main discoveries of the Framingham study was an association between serum cholesterol, which is the amount of cholesterol in the blood, and whether or not a person develops heart disease.
+
+We can frame this as a hypothesis test described as follows:
+$$
+H_0: \mu_0 = \mu_1
+$$
+where $\mu_0$ is the mean serum cholesterol level for those who did not develop heart disease during the study, and $\mu_1$ is the mean level for those who did develop heart disease during the study.
+
+
+$$
+H_a: \mu_0 < \mu_1
+$$
+Notice for we are considering a one-sided alternative, where the cholesterol levels of people in the population who get heart disease are higher, on average, than the cholesterol level of people who do not.
+
+To carryout this test, we will consider a two-sample test with the following test statistic:
+$$
+T = \frac{(\bar{x}_0-\bar{x}_1) - (\mu_0-\mu_1)}{\sqrt{\frac{s_0^2}{n_0} + \frac{s_1^2}{n_1}}}
+$$
+
+where under the null $\mu_0 - \mu_1 = 0$, $n_i$ is the sample size for group $i=0,1$, and $s_i$ is the standard deviation of group $i$.
+
+Since we are estimating the standard error, we will be using a t-distribution rather than a normal distribution.
+
+```{r}
+chol0 <- fram %>%
+  filter(ANYCHD == 0) %>%
+  pull(TOTCHOL)
+
+chol1 <- fram %>%
+  filter(ANYCHD == 1) %>%
+  pull(TOTCHOL)
+
+mean0 <- mean(chol0)
+sd0 <- sd(chol0)
+n0 <- length(chol0)
+c(mean0,sd0, n0)
+
+mean1 <- mean(chol1)
+sd1 <- sd(chol1)
+n1 <- length(chol1)
+c(mean1,sd1, n1)
+
+
+## Assuming the null is true
+se <- sqrt(sd0^2/n0+sd1^2/n1)
+test_stat_chol <- (mean0-mean1)/se
+test_stat_chol
+
+## Get degrees of freedom of t-distribution from t.test()
+t.test(chol0, chol1, alternative ="less") # ' < '
+
+dof <- 1545.8
+
+pt(test_stat_chol, dof)
+```
+
+Using a t-distribution with 1545.8 degrees of freedom, we calculate a p-value on the order of $10^{-22}$ suggesting that we can reject the null hypothesis.  This rejections means we have concluded that the mean serum cholesterol level for those who develop heart disease is greater than for those who do not develop heart disease.
+
+Let's visualize the p-value on a plot:
+```{r}
+gt(df=dof) +
+  geom_vline(aes(xintercept = test_stat_chol), color="red", linetype="dashed") +
+  geom_t_fill(dof, b = test_stat_chol)
+
+```
+
+The vertical red dashed line is the observed test statistic, and the p-value is the probability less than or equal to this value.  It is far in the left tail of our null distribution, which is what we'd expect since our calculated p-value is so small.
+
+Even though there is strong evidence that there is an association between high cholesterol and heart disease, this study does not allow us to conclude that high cholesterol *causes* heart disease.
+
+Establishing causality often requires a well-designed and randomized experiment.  In the Framingham study, the participants were volunteers (i.e., not randomly selected) and the study itself was *observational*.  This means the researchers were not controlling how the participants behaved, but only observing the participants.
+
+
+
+
+
+
+
+
+
+# Lecture:  The Minnesota Coronary Experiment
+
+To establish a causal link between saturated fat intake, serum cholesterol, and heart disease, a group of doctors in the US established the National Heart-Diet Study.  There were 6 centers involved in this study:  Baltimore, Boston, Chicago, Minneapolis-St. Paul, Oakland, and Faribault, MN.
+
+All but the Faribault location used volunteers from the local population, and the participants were asked to modify their diets to include more or less saturated fat.
+
+- The results from these five centers may not have been able to establish causality.  
+- Since they asked the volunteers to each more or less saturated fat, this also could have resulted in the volunteers assigned to eat less saturated fat to also consume fewer calories since the diets were not standardized.  
+- Difference in the groups could have been due to health improvements related to consuming fewer calaries.
+
+
+Faribault was a bit different, and this center lead to what is now referred to as the Minnesota Coronary Experiment.
+
+- The study was lead by Dr. Ivan Frantz and ran from 1968 to 1973
+- It was carried out at the Faribault State Hospital; the patients at this hospital were there due to disabilities or mental illness  
+- The records suggest there were 9,423 study participants with ages 20 - 97  
+-  The records include data frorm a longitudinal study on serum cholesterol for 2355 participants who maintained the diets for a year or more  
+-  The subjects were randomly divided into a control group on a standard diet (including animal fats and margarines) and a diet group (where vegetable oil and corn oil margarine were used in place of half of the saturated fats)  
+- There were ethical issues with experimenting on the patients, however, prior to the diet phase patients were able to decline participation.  There are questions about the patients abilities to provide consent.  For those interested, you can read about recent apologies for the way institutionalized patients were treated in Minnesota in [this article](https://www.tcdailyplanet.net/minnesota-saying-sorry-treatment-persons-disabilities/)
+- For more background on the Minnesota Coronary Experiment, check out [this article](https://www.scientificamerican.com/article/records-found-in-dusty-basement-undermine-decades-of-dietary-advice/) from Scientific American from 2017
+
+
+
+We will first investigate the data on changes in cholesterol and then we will look into mortality rates for the diets. The data for each individual in the 1968 study is not available; only summary statistics are available. Therefore, we will use artificial synthetic data, based on those summary statistics created by the Data8 instructors at UC-Berkeley.
+
+```{r}
+serum_cholesterol <- read_csv("../../data/serum_cholesterol.csv") %>%
+  rename(chol_change = `Change in Serum Cholesterol`)
+serum_cholesterol
+
+serum_cholesterol %>%
+  count(Condition)
+```
+
+At the start of the study, the patients' serum cholesterol levels were measured.  This was repeated at the end of the study so that the percentage change in serum cholesterol could be measured.
+
+```{r}
+ggplot(serum_cholesterol, aes(x=chol_change, fill=Condition)) +
+  geom_histogram(alpha=0.4, position="identity", color="black")
+```
+
+
+These data can be used to address the question, "Does changing saturated fats to polyunsaturated fats in a person's diet decrease their serum cholestrol levels?"
+
+Since we want to test difference between two samples, we can consider a similar hypothesis testing framework as the previous lecture:
+
+$$
+H_0: \mu_0 = \mu_1
+$$
+where $\mu_0$ is the mean percentage cholesterol change for those in the control group, and $\mu_1$ is the mean percentage cholesterol change for those in the diet group.  If the null hypothesis is true, it implies unsaturated fat diet does not change average serum cholesteral levels differently from the control.
+
+
+$$
+H_a: \mu_0 > \mu_1
+$$
+Notice for we are again considering a one-sided alternative because we want to test if those on the diet had significantly greater *decreases* in cholesterol levels.  That is, if unsaturated fat diet decreases average serum cholesterol levels.  
+
+Since the study has features of a randomized controlled experiment, it may be considered appropriate to use causal language if the null hypothesis is rejected. Though one could also argue that the reproducibility of the results may be needed to better establish causality.
+
+
+
+To carryout this test, we will consider a two-sample test with the following test statistic:
+$$
+T = \frac{(\bar{x}_0-\bar{x}_1) - (\mu_0-\mu_1)}{\sqrt{\frac{s_0^2}{n_0} + \frac{s_1^2}{n_1}}}
+$$
+
+where under the null $\mu_0 - \mu_1 = 0$, $n_i$ is the sample size for group $i=0,1$, and $s_i$ is the standard deviation of group $i$.
+
+```{r}
+chol0 <- serum_cholesterol %>%
+  filter(Condition == "Control") %>%
+  pull(chol_change)
+
+chol1 <- serum_cholesterol %>%
+  filter(Condition == "Diet") %>%
+  pull(chol_change)
+
+mean0 <- mean(chol0)
+sd0 <- sd(chol0)
+n0 <- length(chol0)
+c(mean0,sd0, n0)
+
+mean1 <- mean(chol1)
+sd1 <- sd(chol1)
+n1 <- length(chol1)
+c(mean1,sd1, n1)
+
+
+## Assuming the null is true
+se <- sqrt(sd0^2/n0+sd1^2/n1)
+test_stat_chol <- (mean0-mean1)/se
+test_stat_chol
+
+## Get degrees of freedom of t-distribution from t.test()
+t.test(chol0, chol1,alternative ="greater")
+
+dof <- 2316.5
+
+pt(test_stat_chol, dof, lower.tail = FALSE)
+```
+
+The p-value is very small suggesting we can reject the null hypothesis that diets lower in saturated fat do not change cholesterol levels, in favor of the alternative that diets lower in saturated fat reduce cholesterol levels.
+
+
+Let's visualize the p-value on a plot:
+```{r}
+gt(df=dof) +
+  geom_vline(aes(xintercept = test_stat_chol), color="red", linetype="dashed") +
+  geom_t_fill(dof, a = test_stat_chol)
+
+```
+
+
+This study suggests that diets lower in saturated fat reduce cholesterol levels.  In the next lecture we will investigate more data from the Minnesota Coronary Experiment to see if changing saturated fats to polyunsaturated fats in a person's diet affects their risk of death.
+
+
+
+
+
+
+
+
+
+
+# Lecture:  Risk of Death
+
+Continuing with the Minnesota Coronary Experiment, we are going to consider the question, "Does changing saturated fats to polyunsaturated fats in a person's diet affect their risk of death?"
+
+The data set below provides information about the patients, including the number who died.
+
+```{r}
+mortality <- read_csv("../../data/mortality_summary.csv") 
+mortality
+
+mortality_summary <- mortality %>%
+  group_by(Condition) %>%
+  summarize(n = sum(Total), deaths = sum(Deaths), chd_deaths = sum(`CHD Deaths`))
+mortality_summary
+
+```
+
+
+Rather than considering the Coronary Heart Disease (CHD) deaths, we are going to investigate the risk of death (for any cause).
+
+We can write out hypothesis tests as 
+$$
+H_0: p_0 = p_1
+$$
+where $p_0$ is the death rate for those in the control group, and $p_1$ is the death rate for those in the diet group.  That is, the lower saturated fat diet does not result in a different rate of death.
+
+
+$$
+H_a: p_0 \neq p_1
+$$
+suggesting the lower saturated fat diet does cause a different rate of death.  In this case we are using a two-sided alternative, but we could consider a one-sided test instead.
+
+Next we calculate the sample proportions for the two groups:
+```{r}
+## Estimate phat_0
+n0 <- mortality_summary %>%
+  filter(Condition == "Control") %>%
+  pull(n)
+x0 <- mortality_summary %>%
+  filter(Condition == "Control") %>%
+  pull(deaths)
+p0 <- x0/n0
+p0
+```
+
+```{r}
+## Estimate phat_1
+n1 <- mortality_summary %>%
+  filter(Condition == "Diet") %>%
+  pull(n)
+x1 <- mortality_summary %>%
+  filter(Condition == "Diet") %>%
+  pull(deaths)
+p1 <- x1/n1
+p1
+```
+
+Since we are estimating a difference in proportions for this question, the test statistic will be different from the cases where we were consider means.  In fact, there are at least three options for hypothesis tests that we can consider here:  simulation, normal approximation, likelihood ratio test.
+
+We will begin with the simulation approach.
+
+For the simulation, we want to generate our sampling distribution assuming the null hypothesis is true; that is, assuming $p_1=p_0$.  If the null hypothesis is true, we can pool our two samples together to get an estimate of the overall $p$ (the probability of death in our sample).
+
+```{r}
+x <- x0+x1
+n <- n0+n1
+phat <- x/n
+phat
+
+```
+
+The `phat` can be used to generate many samples of our two groups (control and diet).  The difference between the sample proportions can be estimated, and then we can compare the simulated distribution with our observed difference between $\hat{p}_1$ and $\hat{p}_0$.
+
+```{r}
+## Null distribution simulation
+
+N <-  100000
+
+dat <- tibble(
+  x0 = rbinom(N, n0, phat),
+  x1 = rbinom(N, n1, phat),
+  p0 = x0/n0,
+  p1 = x1/n1,
+  diff = p1 - p0)
+
+dat_sum <- dat %>% 
+  summarize(mean = mean(diff),
+            sd = sd(diff))
+
+dat_sum
+```
+
+As expected, the mean of our null distribution is close to zero.
+
+Now we can plot our sampling distribution and compare it to our observed difference:
+```{r}
+ggplot(dat, aes(x = diff)) +
+  geom_density(color = "blue") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = p1-p0, color = "red", linetype = "dashed") +
+  geom_norm_density(mu = 0, sigma = dat_sum$sd, color = "red", alpha = 0.5) +
+  geom_norm_fill(mu = 0, sigma = dat_sum$sd, a=p1-p0, fill="cyan",alpha=.2) +
+  geom_norm_fill(mu = 0, sigma = dat_sum$sd, b=-(p1-p0), fill="cyan",alpha=.2)
+```
+
+The simulated null distribution matches the normal density quite closely.  The shaded region indicates the p-value if we assume the normal density is an appropriate approximation.
+
+We can estimate the p-value by computing the proportion of simulated values that are further in the upper or lower tails of the distribution than our observed test statistic (the vertical dashed red line in the plot above).
+
+```{r}
+## direct p-value calculation
+mean(abs(dat$diff) >= p1-p0)
+```
+
+This p-value is larger than standard cutoffs of 0.01 or 0.05 suggesting there is not sufficient evidence to reject our null hypothesis.  That is, we do not have reason to believe that the death rates are different between the control diet and the diet with reduced saturated fat.
+
+
+
+
+
+
+
+
+
+
+
+# Lecture:  Rate of Death part 2
+
+In the previous lecture we used simulation to carryout our hypothesis test to see if there are differences in the death rate between the control diet and the diet with reduced saturated fat.  Today we will consider two other approaches for carrying out the hypothesis test.
+
+
+#### Normal approximation
+
+The normal approximation to $\hat{p}_1 - \hat{p}_0$ can be used.  The standard error for $\hat{p}_1 - \hat{p}_0$ is
+$$
+SE(\hat{p}_1 - \hat{p}_0) = \sqrt{\frac{p_1(1-p_1)}{n_1}+\frac{p_0(1-p_0)}{n_0}}
+$$
+
+Under the null hypothesis, $p_1=p_0$ so the standard error can take the form 
+$$
+SE(\hat{p}_1 - \hat{p}_0) = \sqrt{\hat{p}(1-\hat{p})(\frac{1}{n_1}+\frac{1}{n_0})}
+$$
+
+where $\hat{p}$ is estimated by pooling the data as $\hat{p} = \frac{x_1+x_0}{n_1+n_0}$.
+
+
+This leads to the following test statistic:
+$$
+z_p = \frac{\hat{p}_1 - \hat{p}_0 }{\sqrt{\hat{p}(1-\hat{p})(\frac{1}{n_1}+\frac{1}{n_0})}}
+$$
+
+We compute the components of our test statistic next:
+```{r}
+## Estimate phat_0
+n0 <- mortality_summary %>%
+  filter(Condition == "Control") %>%
+  pull(n)
+x0 <- mortality_summary %>%
+  filter(Condition == "Control") %>%
+  pull(deaths)
+p0 <- x0/n0
+p0
+
+## Estimate phat_1
+n1 <- mortality_summary %>%
+  filter(Condition == "Diet") %>%
+  pull(n)
+x1 <- mortality_summary %>%
+  filter(Condition == "Diet") %>%
+  pull(deaths)
+p1 <- x1/n1
+p1
+
+## Estimate phat
+x <- x0+x1
+n <- n0+n1
+phat <- x/n
+phat
+
+## Estimate SE
+se <- sqrt(phat*(1-phat)*(1/n1+1/n0))
+se
+
+
+## Test statistic
+z_p <- (p1-p0)/se
+z_p
+
+## p-value
+pnorm(z_p, lower.tail=FALSE)*2
+```
+
+We get a similar p-value to our simulated hypothesis test from the prevous lecture, again leading us to not reject the null.
+
+
+#### Likelihood ratio test
+
+Another option for our hypothesis test is to use the likelihood ratio test.
+
+
+The null hypothesis suggests there is only a single parameter, our $\hat{p}$ from above.  
+The alternative hypothesis has different estimates for $p_1$ and $p_0$:  $\hat{p}_1 = \frac{x_1}{n_1}$ and $\hat{p}_0 = \frac{x_0}{n_0}$.
+
+```{r}
+phat
+p1
+p0
+```
+
+Now we can compute the log-likelihoods:
+```{r}
+mortality_summary <- mortality_summary %>% 
+  select(-chd_deaths) %>%
+  mutate(p = deaths/n,
+         phat = sum(deaths)/sum(n),
+         logl_0 = dbinom(deaths, n, phat, log = TRUE), ## null hypothesis likelihood
+         logl_a = dbinom(deaths, n, p, log = TRUE))  ## alternative hypothesis likelihood
+mortality_summary
+```
+
+The test statistic, $G = 2(\log L_a - \log L_0)$, can be computed along with the p-value.  
+Recall that under the null, $G$ follows a Chi-squared distribution with a degrees of freedom equal to the difference in the number of parameters between the null and alternative models.  
+In this example, the degrees of freedom is $2-1 = 1$.
+```{r}
+mortality_logl = mortality_summary %>% 
+  summarize(logl_0 = sum(logl_0),
+            logl_a = sum(logl_a),
+            G = 2*(logl_a - logl_0),
+            pval = 1 - pchisq(G,1))
+
+mortality_logl
+```
+
+The p-value is 0.2237, which is consistent with the previous two tests we carried out.
+
+```{r}
+gchisq(1, b=3) +
+  geom_chisq_fill(a = mortality_logl$G, b=3, fill="magenta") +
+  geom_vline(xintercept = 0)
+```
+
+Overall it appears that there is not evidence to suggest that the different diets changes the death rate.  
+
+In other words, the Minnesota Coronary Experiment found that the diet with lower saturated fat than the control diet did appear to lower the serum cholesterol levels for the participants.  However, there was not evidence to suggest that the lower cholesterol levels reduced the rates of death (any cause) between the two groups in study.   
+
+If you'd like to learn more about the study, see [this paper](https://www.bmj.com/content/353/bmj.i1246) from 2016
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

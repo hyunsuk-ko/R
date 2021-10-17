@@ -1,0 +1,134 @@
+---
+title: "STAT 240 Discussion 10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(lubridate)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+## Questions
+
+
+## Data
+
+The following code reads in the Madison weather data and calculates the average July temperature for each year.
+Treat the years from 1869 to 1898 as *early Madison* and from 1991 to 2020 as *recent Madison*.
+
+```{r read-data, echo=FALSE}
+## Read and transform the Madison weather data
+mw <- read_csv("../../data/madison-weather-2020-clean-2.csv")
+
+mw_july <- mw %>%
+  filter(month=="Jul") %>%
+  filter(year < 1899 | year > 1990) %>%
+  group_by(year) %>%
+  summarize(tavg = mean(tavg)) %>%
+  mutate(era = case_when(
+    year < 1900 ~ "early",
+    year > 1989 ~ "recent"))
+
+```
+
+### 1 
+
+> Calculate the mean and standard deviation of the average July temperature separately for early Madison and recent Madison.
+
+```{r problem-1}
+sum_mw_july<- mw_july %>%
+  group_by(era) %>%
+  summarize(mean=mean(tavg), sd=sd(tavg))
+
+sum_mw_july
+```
+
+
+
+### 2
+
+> Make a plot with separate density curves for the early and recent July average temperatures.
+
+```{r problem-2}
+ggplot(mw_july, color=era) +
+  geom_density(aes(x=tavg))
+```
+
+
+
+
+### 3
+
+> Treat the 30 years in each time period as separate samples. Use the formulas in the instructions HTML to find 95% confidence intervals for the average July temperature in each time period. Compare results with the output of the `t.test()` function in the chunk below.
+
+```{r problem-3a}
+x1 <- mw_july %>%
+  filter(era=="early") %>%
+  pull(tavg)
+
+t.test(x1)
+
+x2 <- mw_july %>%
+  filter(era=="recent") %>%
+  pull(tavg)
+
+t.test(x2)
+```
+
+```{r problem-3}
+
+```
+
+
+
+### 4
+
+> Draw a graph of a t distribution with 29 degrees of freedom and with the middle 95% of the distribution shaded in.
+
+```{r problem-4}
+
+```
+
+
+
+### 5
+
+> Find a 95% confidence interval for the change (early minus recent) of average July temperatures in Madison.
+Calculate the difference in sample means and calculate the standard error for the difference.
+Use the `t.test()` function result to find the estimated degrees of freedom.
+Find the critical $t^*$ value for a 95% confidence interval for this number of degrees of freedom.
+Verify that the hand calculation for the confidence interval matches the `t.test()` result.
+
+```{r problem-5}
+t.test(x1,x2)
+
+```
+
+
+
+### 6
+
+> Test the hypothesis that the mean July temperature in Madison in the early era is equal to that in the recent era versus that alternative that they are different.
+Calculate the test statistic $t$ from the equations
+and verify it matches the result from `t.test()`. Write a conclusion in context to interpret the result of this hypothesis test.
+
+```{r problem-6}
+t.test(x1,x2)
+```
+
+
+
+
+### 7
+
+> Make a plot of the t distribution for the previous problem. Add a vertical line at the test statistic and shade in the two tail areas that correspond to the p-value.
+
+```{r problem-7}
+
+```
+
+
+

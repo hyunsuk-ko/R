@@ -1,0 +1,111 @@
+---
+title: "Project Draft"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Members
+- Hyun Ko
+- Kyle Yeo
+- Riley Larget
+- Winsten Coellins
+
+```{r setup, echo=FALSE, include=FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+### Introduction
+Question of Interest:
+- Are the type of college related to salary?
+- Are the type of region related to salary?
+- From the type of college and type of region, which one is more important relating to salary?
+- How does the initial salary relate to the increase in salary over time?
+
+This analysis was chosen in order to point out several questions people have been asking especially for international students studying abroad in the United States such as "Does the type of University that I choose will have an impact in my income after I graduate?" and "Does the region of University really matters when it comes to getting an income at a workplace?" as the main concern for most of people. Therefore, in this analysis, we are going to focus on questions that could answer the concern of people by asking the relation of college type to salary, the region of college to salary, and how does the initial salary will increase over one's career. We found that the type of college makes a big difference in salary and the region of college makes no significant difference in salary, so type of college is more important than region. We also found that the salary increases faster over time for lower starting salaries for all types of college, with the exception of Ivy League colleges.
+
+Note: calculate slopes and p-value as supports
+
+### Background
+Data consists of three datasets:
+- degrees-that-pay-back.csv
+- salaries-by-college-type.csv
+- salaries-by-region.csv
+
+Data Description:
+- Undergraduate Major: majors that are offered in college/university
+- School Name: name of college/university
+- Region: region of college/university
+- School Type: type of college/university
+- Starting Median Salary: fresh graduate starting salary
+- Mid-Career Median Salary: salary after working for certain period of years
+- Percent Change: changes that occurs over years
+- Mid-Career X Percentile: value of a wage below a certain percent of workers fall (X is any percentile)
+
+Data is taken from:
+- https://www.kaggle.com/wsj/college-salaries
+
+For the rest of the report we are going to tidy up each of the datasets appropriately and analyze our research questions with the graph.
+
+### Analysis
+
+For numerical and graphical summaries:
+- For numerical, we could do median/mean/sd in a form of table
+- Take the graph from our shared file that best represent the conclusion (need to modify graph a little)
+
+Display the type of college vs type of region graph separately (next to each other to compare)
+
+```{r files}
+# All of these are original data that has been modified
+# in order to be executed in RStudio
+degree_salary <- read_csv("../data/degrees-that-pay-back.csv")
+salaries_college_type <- read_csv("../data/salaries-by-college-type.csv")
+salaries_region <- read_csv("../data/salaries-by-region.csv")
+```
+
+```{r data-cleaning salaries-college-type}
+# career stage and type of school
+career_stage_school_type <- salaries_college_type %>%
+  rename(school_name = 'School Name',
+         school_type = 'School Type',
+         mid_career_10th = 'Mid-Career 10th Percentile Salary',
+         mid_career_25th = 'Mid-Career 25th Percentile Salary',
+         mid_career_75th = 'Mid-Career 75th Percentile Salary',
+         mid_career_90th = 'Mid-Career 90th Percentile Salary') %>%
+  drop_na() %>%
+  select(school_name, school_type, mid_career_10th, mid_career_25th, mid_career_75th, mid_career_90th)
+
+career_stage_school_type
+```
+
+```{r data visualization career-stage-and-school-type}
+# Mid-Career Salaries 90th Percentile and School Type
+ggplot() +
+  geom_boxplot(data= career_stage_school_type, aes(x = school_type, y = mid_career_90th, color = school_type)) +
+  xlab("School Type") +
+  ylab("Mid-Career Salaries 90th Percentile") +
+  ggtitle("Mid-Career 90th Percentile Salaries and School Type")
+```
+```{r data-claning career-stage-region}
+career_stage_region <- salaries_region %>%
+  rename(region = 'Region',
+         mid_career_10th = 'Mid-Career 10th Percentile Salary',
+         mid_career_25th = 'Mid-Career 25th Percentile Salary',
+         mid_career_75th = 'Mid-Career 75th Percentile Salary',
+         mid_career_90th = 'Mid-Career 90th Percentile Salary') %>%
+  drop_na() %>%
+  select(region, mid_career_10th, mid_career_25th, mid_career_75th, mid_career_90th)
+```
+
+
+### Discusson
+
+
+
+
+
+
+
+
+

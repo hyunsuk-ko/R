@@ -1,0 +1,591 @@
+---
+output: html_document
+geometry: margin=0.75in
+fontsize: 12pt
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message=FALSE,
+                      warning=FALSE,
+                      cache = FALSE)
+library(tidyverse)
+library(lubridate)
+library(stringr)
+source("../../scripts/viridis.R")
+```
+
+
+# Fall 2020 STAT 240 Final Exam
+
+#### Due Saturday, December 12, 2020 at 11:59 PM CT (local time in Madison, WI)
+
+####  NAME:  HYUN KO
+
+### Preliminaries
+
+- You will have 24 hours to complete the exam, and your solutions should be uploaded to Canvas by 11:59 PM CT (the time zone in Madison, WI).   
+
+- You are not allowed to communicate with anyone using any means (email, phone, text, social media, online discussion platforms, etc.) except the instructors of this course.  You are allowed to use materials from the course and the internet.    
+
+- If you have a question during the exam, post your question as a *private* post on Piazza.  To do this, select the "Individual Student(s) / Instructor(s)" option next to "Post to:" when creating your post. 
+
+- It is recommended that you begin the exam as soon as possible and read over it to see if you have any questions.  You can expect for questions to be addressed during normal working hours in Madison, WI (9 AM CT - 5 PM CT).  Questions posted outside that window *may* still be addressed.
+
+### Submission
+
+Once you have completed the exam, knit the R Markdown document to create an HTML file.  To submit this Exam, go to our Canvas site and select "Assignments" on the left panel, and upload both the edited Rmd and HTML files to the place designated for the final exam.  *Be sure to review the HTML to verify all your answers appear as you expect.*
+
+### Data
+
+The following data files are needed to complete this exam.  More information about the data sets are provided later in the exam. 
+
+Danish Family Data:  
+*danish-children.csv*
+
+Dollar General Data:  
+*dollar_general_counts.csv*  
+*georgia_population_by_county.csv*  
+*georgia_fei_2020_actual.csv*  
+
+Bike Trip Data:  
+*trip.csv*
+
+
+
+
+# Problems
+
+The exam has a total of 15 problems, some with several parts, totaling 57 points.
+
+
+
+## Short Answer Questions
+
+
+### Problem 1 (2 points)
+
+In a hypothesis test about an unknown parameter, the test statistic...   
+
+**Select the best response**
+
+(a) measures the compatibility between the null and alternative hypotheses
+(b) is the value of the unknown parameter under the null hypothesis
+(c) measures the compatibility between the null hypothesis and data
+(d) is the value of the unknown parameter under the alternative hypothesis
+(e) None of the above
+
+Answer: $(c)$
+
+
+
+### Problem 2 (3 points)
+
+A particle randomly moves along a line. That is, the particle starts at the origin (position 0) and moves either right or left in independent steps of length 0, 1, or 2 (where length 0 means the particle stays in its current location). 
+
+The distribution of the particle’s movement at step i is listed in the table below called `x_distribution`. $X_i$ is the random variable with the distribution below, and $x_i$ are the possible values $X_i$ can take.  The probability of each $x_i$ is listed below under $P(X_i = x_i)$.`
+```{r}
+x_distribution <- tibble(x_i = c(-2, -1, 0, 1),
+                         `P(X_i=x_i)` = c(.5, .2, .1, .2))
+x_distribution
+```
+
+The position of the particle after $k$ steps is the sum of these random movements 
+$$
+Y = X_1+X_2+...+X_k.
+$$
+The probability distribution of $Y$ (with computed values rounded to the nearest 0.01) is
+
+(a) Exactly Normal with mean = $0$ and variance = $1.67/k$
+(b) Exactly Normal with mean = $−0.5$ and variance = $1.67/k$
+(c) Exactly Normal with mean = $−1$ and variance = $1.4/k$
+(d) Approximately Normal with mean = $0$ and variance = $1.3/k$
+(e) Approximately Normal with mean = $−0.5$ and variance = $1.4/k$
+(f) Approximately Normal with mean = $−1$ and variance = $1.67/k$
+(g) None of the above.
+
+Answer: $(g)$
+
+
+
+### Problem 3 (3 points)
+
+The weight, X, of cherry tomatoes selected at random from a very large bin at the local supermarket follows a Normal distribution with mean 3 oz. and standard deviation 2 oz. Suppose we pick 8 cherry tomatoes from the bin at random (independently) and put them in our bag. What is the probability that exactly 5 of the 8 cherry tomatoes weigh less than 4 oz (rounded to the nearest 0.01)?
+
+$0.136$
+
+
+
+### Problem 4 (3 points)
+
+Suppose a confidence interval for the mean weight increase of pregnant women in their first 5 months of pregnancy is found to be 16 +/- 0.134 lbs based on a random sample of size n = 400. Assuming the population standard deviation is known to be 2 lbs, what confidence level was used to calculate this confidence interval (rounded to the nearest %)?
+
+$82%$
+
+
+
+
+## Danish Family Questions
+
+Data for the next set of questions is in the file *danish-children.csv*
+which was collected from 1960 to 1994 from all Danish families 
+with only single births.
+Each row is a summary of the number of children in a family in the data set
+with a given birth order, sex, and the sequence of the sexes of any previous children in the family.
+There are four columns in this data set.
+
+- `order` - the birth order;
+- `sex` - F or M depending on sex assigned at birth;
+- `previous` - the sequence of sexes of previous children in the family;
+- `n` - the count of the number of such children
+
+```{r}
+danish <- read_csv("../../data/danish-children.csv")
+danish
+```
+
+### Problem 5 (3 points)
+
+Define $p_1$ to be the probability that a third child is a girl among families who have a third child after first having two girls.
+Let $p_2$ be the probability that a third child is a girl among families
+who have a third child after first having two boys.
+Treat the observed children in this data set as a sample from a population of potential children that might have been born in these families.
+Determine the data below and estimate these two probabilities:
+
+- $n_1$ is the number of families that have a third child after having two girls.
+- $x_1$ is the number of girls from such families.
+- $n_2$ is the number of families that have a third child after having two boys.
+- $x_2$ is the number of girls from such families.
+
+```{r}
+n1 <- danish %>%
+  filter(order == 3) %>%
+  filter(previous == "FF") %>%
+  summarize(total = sum(n)) %>%
+  pull(total)
+
+x1 <- danish %>% 
+  filter(order==3) %>%
+  filter(previous == "FF") %>%
+  filter(sex == "F") %>%
+  pull(n)
+
+p1 <- x1/n1
+p1
+
+n2 <- danish %>%
+  filter(order == 3) %>%
+  filter(previous == "MM") %>%
+  summarize(total=sum(n)) %>%
+  pull(total)
+
+x2 <- danish %>% 
+  filter(order==3) %>%
+  filter(previous == "MM") %>%
+  filter(sex == "F") %>%
+  pull(n)
+
+p2 <- x2/n2
+p2
+```
+
+$p_1$ = 0.4915671
+$p_2$ = 0.4841488
+
+
+
+### Problem 6 (5 points)
+
+**(a)** Find a 95% confidence interval for $p_1 - p_2$.    
+**(b)** Interpret the meaning of this interval in context.
+
+```{r}
+est_dan_diff <- p1 - p2
+
+se_dan_diff <- sqrt( (p1*(1-p1) / n1) + (p2*(1-p2) / n2) )
+
+z <- qnorm(0.975)
+
+ci_dan_diff <- est_dan_diff + c(-1,1) * z * se_dan_diff
+ci_dan_diff
+```
+
+(a) [0.0006034076, 0.0142332250] 
+(b) It is 95% confident that the estimated difference between p_1 and p_2
+is in between the interval [0.0006034076, 0.0142332250].
+
+
+
+### Problem 7 (8 points)
+
+Test the null hypothesis that $p_1 = p_2$ versus the two-sided alternative.
+
+**(a)** State hypotheses    
+**(b)** Calculate a test statistic    
+**(c)** Report a p-value    
+**(d)** Interpret the result of the test in the context of the problem.
+
+```{r}
+p_pool <- (x1+x2) / (n1+n2)
+
+se_pool <- sqrt(p_pool*(1-p_pool)*(1/n1 + 1/n2))
+
+t_stat <- (p1-p2) / se_pool
+t_stat
+
+p_value = 2 * pnorm(-abs(t_stat))
+p_value
+```
+
+(a) 
+$H_0: p_1 = p_2$
+$H_a: p_1 \neq p_2$
+
+(b) $2.133504$
+
+(c) $0.03288343$
+
+(d) As p-value is lesser than 0.05, we can reject the null hypothesis.
+
+
+
+
+
+## Dollar General Questions
+
+Dollar General is a chain of budget stores that has grown rapidly across the country at a time when many other retailers are shrinking.
+Part of their formula of success is to sell inexpensive food which is often processed and unhealthy, often undercutting local stores which sell more expensive and healthy food options, sometimes driving these competitors out of business.
+
+Researchers have developed the Food Environment Index (FEI) to measure the food environment in neighborhoods. The FEI combines a measure of proximity to healthy food among low income residents
+with a measure of food insecurity and takes values on a scale from 0 (worst) to 10 (best).
+Values in a county are averaged over values in smaller units within the county.
+In 2020, the median value for counties in the United States was 7.6
+and most counties fell between about 6.9 and 8.2.
+For comparison,
+in Wisconsin, the mean across counties is 8.5 and most (plus or minus one standard deviation) are between 8.0 and 9.0 and the value in Dane county,
+in which Madison is situated, is 8.2.
+
+One complaint about Dollar General stores is that when a new store opens in a small town, local grocers compete poorly and are put out of business,
+causing people to lose access to local healthy food options.
+The following questions examine an association between the FEI measured at the county level and the number of Dollar General stores per capita in counties in the state of Georgia.
+
+Here are variable descriptions:
+
+*dollar_general_counts.csv*
+
+- `County` - the name of a county in Georgia
+- `Dollar General` - the number of Dollar General stores in the county
+
+*georgia_population_by_county.csv*  
+
+- `County` - the name of a county in Georgia
+- `population` - the population of the county
+
+*georgia_fei_2020_actual.csv*  
+
+- `FIPS` - a unique county identifier code used by federal agencies
+- `State` - the state name (always Georgia for this data)
+- `County` - the county name
+- `Food Environment Index` - the average FEI value for the county
+
+```{r}
+dollar <- read_csv("../../data/dollar_general_counts.csv")
+population <- read_csv("../../data/georgia_population_by_county.csv")
+fei <- read_csv("../../data/georgia_fei_2020_actual.csv")
+```
+
+### Problem 8 (4 points)
+
+Combine and transform data from the files *dollar_general_counts.csv*, *georgia_population_by_county.csv*, and *georgia_fei_2020_actual.csv* into a single data frame named `dg` with one row per county and with these columns:
+
+- *county*: the name of the county
+- *fei*: the Food Environment Index value
+- *population*: the population of the county
+- *stores*: the number of Dollar General stores
+- *dg_per*: the number of Dollar General stores per 100,000 people.
+
+Note that the state of Georgia has 159 counties.
+Any county that does not appear in the file *dollar_general_counts.csv* has no Dollar General Stores.
+
+After creating the data frame, create and print a summary of the median values for each of the four quantitative variables as a tibble with a single row, discarding any missing observations in variables which have them, but using all non-missing data for each variable.
+
+```{r}
+dollar <- dollar %>%
+  mutate(County = ifelse(County == "Dekalb", "DeKalb", County)) %>%
+  mutate(County = ifelse(County == "Mcduffie", "McDuffie", County)) %>%
+  mutate(County = ifelse(County == "Mcintosh", "McIntosh", County))
+
+dg_1 <- right_join(dollar, population)
+
+dg <- left_join(dg_1, fei) %>%
+  rename(fei = "Food Environment Index",
+    stores = "Dollar General") %>%
+  mutate(dg_per = stores / population * 100000) %>%
+  select(County, fei, population, stores, dg_per)
+dg
+```
+
+
+
+### Problem 9 (4 points)
+
+**(a)** Create a scatter plot with the number of Dollar General stores per 100,000 people on the x axis and FEI on the y axis.
+Indicate the county populations with the size of the points and set `alpha = 0.5` to make points partially transparent to lessen the visual impact of overplotting.
+Add a straight regression line to the plot.
+
+**(b)** What is the slope of the regression line, rounded to three significant digits?
+
+```{r}
+ggplot(dg, aes(dg_per, fei)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se=FALSE)
+
+get_slope <- function(x,y, data)
+{
+  fit <- lm(y ~ x, data=data)
+  return (coef(fit)[2])
+}
+
+slope_1 <- get_slope(dg$dg_per, dg$fei, dg)
+slope_1
+```
+
+(b) $-0.039$ 
+
+
+
+### Problem 10 (4 points)
+
+The two counties with FEI values below three are outliers and potentially influential points for the fitted regression model.
+
+**(a)** After removing these two points, replot the data and fit a regression line as before.
+
+**(b)** Report the slope of this line, rounded to three significant digits.
+
+```{r}
+dg_2 <- dg %>%
+  filter(fei > 3 | is.na(fei)) 
+
+ggplot(dg_2, aes(dg_per, fei)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE)
+
+slope_2 <- get_slope(dg_2$dg_per, dg_2$fei, dg_2)
+slope_2
+```
+(b) $-0.0199$ 
+
+
+
+### Problem 11 (3 points)
+
+One county has missing data for the FEI.
+
+**(a)** Identify this county and report the values of its non-missing data.
+
+**(b)**
+Use each of the two regression models (using all data and with the two low FEI values removed) to predict the missing FEI value for this county, rounded to one decimal place.
+
+```{r}
+dg_3 <- dg %>%
+  filter(is.na(fei))
+dg_3
+
+get_intercept <- function(x,y, data)
+{
+  fit <- lm(y ~ x, data=data)
+  return (coef(fit)[1])
+}
+
+intercept_1 <- get_intercept(dg$dg_per, dg$fei, dg)
+intercept_2 <- get_intercept(dg_2$dg_per, dg_2$fei, dg_2)
+
+predict_y_v1 <- function(x){
+    slope <- slope_1
+    intercept <- intercept_1
+    y <- intercept + slope*x
+    names(y) <- "predicted fei"
+    return(y)
+}
+
+predict_y_v2 <- function(x){
+    slope <- slope_2
+    intercept <- intercept_2
+    y <- intercept + slope*x
+    names(y) <- "predicted fei"
+    return(y)
+}
+
+predict_y_v1(dg_3$dg_per)
+predict_y_v2(dg_3$dg_per)
+```
+
+(a) County = White / fei = NA / population = 30798 / stores = 5 / dg_per =16.23482
+
+(b) 7.1 and 7.2
+
+
+
+
+## Bike Trip Questions
+
+The Bike Trip data are contained in the *trip.csv* file.  The data were made available by the Bay Area Bike Share service and accessed through UC-Berkeley's Data8 site, and include bike rentals from this program between September 1, 2014 and August 31, 2015.  More information, including more extensive data, is available [here](https://www.sfmta.com/getting-around/bike/bike-share).
+
+The data include the following variables:
+
+- `Trip ID` - an identifer for each bike trip  
+- `Duration` - the length of the use of the bike in seconds  
+- `Start Date` - the date and time the bike trip started  
+- `Start Station` - the name of the station at which the bike trip started  
+- `Start Terminal` - the terminal number at the start of the bike trip  
+- `End Date` - the date and time the bike trip ended  
+- `End Station` - the name of the station at which the bike trip ended  
+- `End Terminal` - the terminal number at the end of the bike trip  
+- `Bike #` - the serial number identifying the bike  
+- `Subscriber Type` - indicated as "Subscriber" (i.e., a member of the bike sharing program) or "Customer" (a casual user of the bike sharing program)  
+- `Zip Code` - zip code of the user 
+
+
+
+### Problem 12 (4 points)
+
+Define a data frame called `trip` by doing the following.  Read in the *trip.csv* data set and rename the variables as listed below:
+
+id = `Trip ID`,  
+duration = `Duration`,  
+start_date = `Start Date`,  
+end_date = `End Date`,  
+start_station = `Start Station`,  
+end_station = `End Station`,  
+start_terminal = `Start Terminal`,  
+end_terminal = `End Terminal`,  
+bike = `Bike #`,  
+subscriber = `Subscriber Type`,  
+zip = `Zip Code`  
+
+Additionally, add a variable `year` indicating the year of the start date of the bike trip, and add a variable `month` indicating the month of the start date of the bike trip.  
+
+**(a)** Use `print.data.frame(head(trip,6))` to print out the first 6 rows and all the columns of your `trip` data frame.
+
+**(b)** Create a summary table that displays the minimum and maximum trip duration for each month.  There should be 3 columns and 12 rows in this table.  Print out this table.
+
+
+```{r}
+trip <- read_csv("../../data/trip.csv") %>%
+  rename(id = `Trip ID`,  
+        duration = `Duration`,  
+        start_date = `Start Date`,  
+        end_date = `End Date`,  
+        start_station = `Start Station`,  
+        end_station = `End Station`,  
+        start_terminal = `Start Terminal`,  
+        end_terminal = `End Terminal`,  
+        bike = `Bike #`,  
+        subscriber = `Subscriber Type`,  
+        zip = `Zip Code`) %>%
+  mutate(year = year(as.Date(start_date, '%m/%d/%Y')),
+        month = month(as.Date(start_date, '%m/%d/%Y')))
+trip
+
+print.data.frame(head(trip,6))
+
+trip %>%
+  group_by(month) %>%
+  summarize(max_duration = max(duration),
+            min_duration = min(duration))
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+### Problem 13 (3 points) 
+
+Using your `trip` data frame, how many of the bike trips started at a Caltrain station?  You can assume that all the Caltrain stations have "Caltrain" in the name of the station.
+
+```{r}
+trip %>%
+  filter(str_detect(start_station, "Caltrain"))
+```
+Total 60079 trips departed from Caltrain station.
+
+
+### Problem 14 (4 points)
+
+Using your `trip` data frame, create a new data frame called `trip2` that has the start stations listed in the first column, the end stations listed across the rest of the columns, and the content of the table indicating the number of bike trips between each start and end station.  For example, the table cell at row i and column j of the table should indicate how many bike trips took place between start station i and end station j.  If there were no trips between two stations, the value of the table should be `0`.
+
+Sort the rows in alphabetical order by start station.  Note that start station names that begin with numbers can appear before start station names that begin with the letter "A."
+
+**(a)** Print out the first 10 rows of the table and at least 3 columns.
+
+**(b)** How many start and end stations did not have any trips taken?  That is, how many 0's are in the `trip2` table?
+
+```{r}
+trip_part <- trip %>%
+  group_by(start_station) %>%
+  select(start_station, end_station, bike)
+
+trip_2 <- pivot_wider(trip_part, id_cols= start_station , names_from = start_station , values_from = bike)
+
+trip_part
+trip_2
+```
+
+REPLACE THIS TEXT WITH YOUR RESPONSE
+
+
+
+### Problem 15 (4 points)
+
+Make a plot that displays the average duration for bike trips in each of the four seasons, where the seasons are specified as 
+
+- Spring = March, April, May  
+- Summer = June, July, August  
+- Fall = September, October, November  
+- Winter = December, January, February  
+
+Use a thin blue vertical line segment to visualize a 95% confidence interval for the mean for each season, a slightly thicker black segment to visualize the interval one standard error above and below the point estimate (i.e., the sample mean) for each season, and a point at the point estimate for each season. Label axes appropriately and add an informative title to the plot.
+
+```{r}
+trip_3 <- trip %>%
+  mutate(season = case_when(
+    month == 1 ~ 'Winter',
+    month == 2 ~ 'Winter',
+    month == 3 ~ 'Spring',
+    month == 4 ~ 'Spring',
+    month == 5 ~ 'Spring',
+    month == 6 ~ 'Summer',
+    month == 7 ~ 'Summer',
+    month == 8 ~ 'Summer',
+    month == 9 ~ 'Fall',
+    month == 10 ~ 'Fall',
+    month == 11 ~ 'Fall',
+    month == 12 ~ 'Winter'
+  )) %>%
+  group_by(season) %>%
+  summarize(avg_duration = mean(duration),
+            n = sum(
+              season == 'Winter',
+              season == 'Spring',
+              season == 'Summer',
+              season == 'Fall'),
+            sd = sd(duration),
+            se = sd / sqrt(n))
+trip_3
+
+ggplot(trip_3, aes(season, avg_duration)) +
+  geom_point(size = 3, color = "orange") +
+  geom_segment(trip_3, mapping = aes(x = season, xend = season, y = avg_duration - 1.96 * se, yend = avg_duration + 1.96 * se), color = "blue", size = 1) +
+  geom_segment(trip_3, mapping = aes(x = season, xend = season, y = avg_duration - se, yend = avg_duration + se), color = "black", size = 1.5) +
+  xlab("Seasons") +
+  ylab("Average Duration") +
+  ggtitle("Average Duration of Bike Trips for Each Season")
+```
+
+
+
+
+
+
+

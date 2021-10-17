@@ -1,0 +1,177 @@
+---
+title: "STAT 240 Discussion 5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(lubridate)
+library(readxl)
+source("../../scripts/viridis.R")
+```
+
+## Group 1
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+: HYUN KO, ROHAN RUDRARAJU, KAIMING XIA, ZIHAO LI
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+```{r read-data, include=FALSE}
+library(readxl)
+wasps <- read_excel("../../data/wasps-data.xlsx") %>%
+   rename(date = `Date Collected`,
+         block = Block,
+         position = Number,
+         lure = Lure,
+         maculifrons = `V. Maculifrons`,
+         flavopilosa = `V. Flavopilosa`,
+         germanica = `V. Germanica`,
+         vidua = `V. Vidua`) %>%
+  mutate(date = as_date(date)) %>%
+  mutate(week = as.integer(as.factor(date))) %>%
+  mutate(two_mb = as.integer(str_detect(lure,"2MB"))) %>%
+  mutate(aa = as.integer(str_detect(lure,"AA"))) %>%
+  mutate(ib = as.integer(str_detect(lure,"IB"))) %>%
+  select(date,week,everything())
+```
+
+## Questions
+
+### 1
+
+> The function `count(x)` is a shortcut for `group_by(x) %>% summarize(n=n())` where `x` is one or more columns. Separately count the number of observations for each `date`, `block`, `position`, and `lure` (i.e., have a different count summary for each of these variables).
+Which of these variables has an error? (Since each value for each variable should be equal, this question is asking which of the variables has values that do not appear as equal counts? Which values appear too often and too infrequently?)
+
+```{r problem-1}
+wasps %>% count(date)
+#wasps %>% group_by(date) %>% summarize(n=n())
+
+wasps %>% count(block)
+#wasps %>% group_by(block) %>% summarize(n=n())
+
+wasps %>% count(position)
+#wasps %>% group_by(position) %>% summarize(n=n())
+
+wasps %>% count(lure)
+#wasps %>% group_by(lure) %>% summarize(n=n())
+## repeat the above code for each noted variable
+```
+
+### Response
+
+- 'Block' and 'Position' variables have inconsistent results.
+- When it comes to 'block' variable, there is one more 'E', whereas one less 'D'.
+- When it comes to 'position' variable, there is one more '6', whereas one less '2'.
+### 2
+
+> In the previous question, we found that an error exists.  For this question, *briefly* explain what the following code does and what this means in terms of what error is in the data.
+
+```{r problem-2}
+table2 <- wasps %>%
+  count(week,block,position) 
+
+dim(table2)
+
+table2 %>%
+  filter(n==2)
+```
+
+### Response
+
+  The code counts the number of observations in each week-block-position combination.
+
+  We can observe something is off because the dim(table2) indicates 199 observations (rows), when there should be 200 = 40 traps x 5 weeks.
+There should only be a single observation for each of these combinations, but there is one combination with 2; this is found with the filter(n==2). Week 2-block E-position 6 has an extra observation that should appear somewhere else; we saw in the previous question that block D-position 2 is missing an observation.
+
+
+### 3
+
+> The previous table (`table2`) would have 200 rows if every week had exactly one observation per week, block, and position. We can use `pivot_wider()` to find which observation is missing by first filtering the table to include only the week where the missing data is (see previous question's results to determine the week), then spreading the position values across the columns, and having the counts values (`n`) be the values in the table. To do this, replace the `XXX`'s in the code below.
+
+```{r problem-3}
+# table2 %>%
+#   filter(XXX) %>%
+#   ## The argument values_fill=0 will place a 0 instead of an NA
+#   ##  in any place where there is no data from table2
+#   pivot_wider(id_cols=XXX, names_from=XXX,values_from=XXX, values_fill=0)
+
+table2 %>%
+  filter(week == 2) %>%
+  pivot_wider(id_cols=block, names_from=position, values_from=n)
+
+```
+
+### 4
+
+> Explain what each step of the following block of code does by filling in the missing information below the chunk. Which block/position combinations do not appear exactly 1 time in a week?
+
+```{r problem-4}
+wasps %>%
+  count(week,block,position) %>%
+  pivot_wider(id_cols=c(week,position), names_from=block,values_from=n, values_fill=0) %>%
+  pivot_longer(cols=A:E,names_to="block", values_to="n") %>%
+  filter(n != 1)
+```
+
+### Response
+
+1. After `count()`, the data has 199 rows.
+2. If the data was valid and matched the experimental design, then every value in the column `n` would be 1.
+3. The argument `values_fill=0` places a 0 in the combination of week, block, and position that is 'NA' in the data set.
+4. After `pivot_longer()`, the data set has 200 rows.
+5. After `pivot_longer()`, the row with a value of '2' in the `n` column contains the week, block, and position that appears too often in the data set.
+6. After `pivot_longer()`, the row with a value of '0' in the `n` column contains the week, block, and position that is missing in the data set.
+
+
+### 5
+
+> Which block/lure combinations do not appear exactly 1 time in a week?
+
+Combine what you learned in the previous exercise and this one to determine which week/lure/block/position is in the data set and should not be and which is missing from the data set and should be.
+
+```{r problem-5}
+wasps %>%
+  select(week,block,lure) %>%
+  group_by(week) %>%
+  count(block,lure) %>%
+  pivot_wider(id_cols=c(week,lure),names_from=block, values_from=n,values_fill=0) %>%
+  pivot_longer(cols=A:E,names_to="block",values_to="n") %>%
+  filter(n != 1)
+```
+
+### Response
+
+The observation where week=2, lure=Control, block=E, and position= 6is in the data set and should not be.  
+
+The observation where week=2, lure=Control, block=D, and position=2 is missing from the data set.
+
+
+### 6
+
+> The following code adds an index with the row number to the wasp data. From the previous questions, we have located an error in the original `wasp` data.  Now we want to correct this error.  Explain what needs to be changed to fix the data set. (You may want to use `filter()` to find the row with the error.  See your responses to the previous question to determine which variables and values to use in the filter.)
+
+```{r index}
+wasps <- wasps %>%
+  mutate(index = 1:200) %>%
+  select(index,everything())
+
+wasps %>%
+  filter(week == 2 & block == 'E' & position == 6 & lure == 'Control')
+```
+
+### Response
+
+The data in row 160 is wrong. 
+To fix it, change the following (edit as needed, not all variable below need to change).
+
+- week from XXX to XXX
+- block from E to D
+- position from 6 to 2
+- lure from XXX to XXX

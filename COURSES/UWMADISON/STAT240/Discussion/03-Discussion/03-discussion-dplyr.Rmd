@@ -1,0 +1,147 @@
+---
+title: "STAT 240 Discussion 3"
+output: html_document
+---
+getwd()
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(viridis)
+source("../../scripts/viridis.R")
+```
+
+
+```{r read-data, include=FALSE}
+## Read in the csv files for all planets
+## There is one row for each exoplanet publication 
+planets <- read_csv("exoplanets-3sept2020.csv")
+
+planets_original <- planets # save a copy of the original upload
+```
+
+## Group 1 (use the assigned group name/number)
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+: *HYUN KO*, ROHAN RUDRARAJU, KAIMING XIA, Zihao Li
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+
+## Questions
+
+### 1
+
+> Write code to modify the exoplanet data by doing the following:
+
+1. Remove all rows for which the variable `default_flag` is 0.  We are going to work with exoplanets that have been published confirmed and contain the default parameter values for the planet.  This will produce a data frame where each row corresponds to only one planet.
+
+2. Change the names of the variables `pl_name` to `planet`, `hostname` to `star`, `discoverymethod` to `method`, `disc_year` to `year`, `sy_pnum` to `number`, `pl_rade` to `radius`, and `pl_bmasse` to `mass`.
+Keep these variables and eliminate the other variables.
+
+3. Count the number of discoveries by method and eliminate rows with discovery methods that have fewer than 20 discoveries.
+
+```{r question-1}
+planets <- planets %>%
+  filter(default_flag != 0) %>%
+  rename(
+    planet = pl_name,
+    star = hostname,
+    method = discoverymethod,
+    year = disc_year,
+    number = sy_pnum,
+    radius = pl_rade,
+    mass = pl_bmasse
+  ) %>%
+  select(planet, star, method, year, number, radius, mass) 
+
+
+planets1<- planets %>%
+  summarize(n=n()) %>%
+  filter(n > 20)
+planets1
+
+
+  
+```
+
+> After these changes, how many observations are in the data set?
+
+Total 4243 observations.
+
+
+### 2
+
+> What are the names of the stars with the most discovered exoplanets orbiting it?  Create a data frame that lists the top ten stars with the most discovered exoplanets arranged from the most to the least; include the variables `star` and `number` only.  In addition to other commands, you will want to use `slice_max()`.  
+
+You may notice something strange after completing the instructions above:  the same star's name is repeated a number of times!  What's going on here?  Let's say there are 4 detected planets orbiting the same star.  Since each row of our data frame has a planet, the same host star may be listed for each of those 4 rows.  To address this and only display the star's name once, use the `distinct()` command before the `slice_max()`.
+
+```{r question-2}
+planets %>%
+  select(star, number) %>%
+  distinct() %>%
+  slice_max(order_by=number, n=10)
+```
+
+What is the name of the star with the most detected exoplanets?
+
+KOI-351
+
+
+### 3
+
+> Consider the number of exoplanets discovered per system and make a graphic that has a bar for the size of the system (i.e., the number of discovered exoplanets) and fill the bars with colors according to the method of detection.  You can use `geom_bar()`; this is reasonable here because the size of the systems are integers.  For the `position` option in `geom_bar()`, set this equal to `position_dodge2(preserve = "single")`.  Be sure to add meaningful labels to the x-axis (e.g., "Number of Exoplanets Discovered in the System") and y-axis (e.g., "Number of Exoplanets").
+
+Notice that this figure is counting the number of exoplanets in systems of different sizes.  This means that the vertical axis is representing the number of planets within each system size *not* the number of systems.  You could create a similar figure first by counting the number of systems of the different sizes.  However, planets within the same system may have been detected using different methods so the bar coloring would need to be adjusted.
+
+```{r problem-3}
+ggplot(planets, aes(x=number, fill=method)) +
+  geom_bar(position=position_dodge2(preserve = "single")) +
+  xlab("Number of Exoplanets Discovered in the System") +
+  ylab("Number of Planets")
+
+ggplot(planets, aes(x=number, fill=method)) +
+  geom_bar(position="dodge") +
+  xlab("Number of Exoplanets Discovered in the System") +
+  ylab("Number of Planets")
+```
+
+What did `position = position_dodge2(preserve = "single")` do to the bar plot?  How does it compare to using `position = "dodge"`?
+
+It produces bars that are next to each other for each system size and forces the bars to be the same width. position = "dodge" does a similar thing but does not require the bars to be the same width.
+
+### 4
+
+> The Transit method of detection allows for the estimation of a planet radius and the Radial Velocity method allows for the estimation of a planet's mass.  Create a data frame that counts the number of missing values for the variables  `radius` and `mass` for the methods `Transit` and `Radial Velocity`.
+
+```{r question-4}
+planets %>%
+  filter(method == 'Radial Velocity' | method == 'Transit') %>%
+  group_by(method) %>%
+  select(method, radius, mass) %>%
+  summarize_all(function(x) sum(is.na(x)))
+```
+
+Are these numbers consistent with the Transit method allowing for the estimation of planet radius and the Radial Velocity method allowing for the estimation of a planet's mass?  Explain.
+
+Yes, because there is relatively few missing value in radius for Transit method and mass for Radial Velocity, the data can be used for the estimation.
+
+### 5
+
+> Calculate the minimum, 25th percentile, mean, median, and maximum value of radius over all exoplanets that were discovered using the method `Transit` in the data set.  Be sure to drop the missing values (`drop_na()`) before calculating the summary statistics. You will also need to reduce the data set to the transit method-detected exoplanets before calculating these statistics.  To get the 25th percentile, consider using `quantile(radius, .25)`.(
+
+```{r question-5}
+planets %>%
+  filter(method == 'Transit') %>%
+  drop_na() %>%
+  select(planet, method, radius) %>%
+  summarize(min=min(radius), percentile_25=quantile(radius, .25), mean=mean(radius), median=median(radius), max=max(radius))
+```
+Do most of these planets have an estimated radius less than, greater than, or about the same as the radius of the Earth?
+
+Radius of Earth(6.4) > Mean of Radius of Planets observed by 'Trasit' Method (2.34).
+
+

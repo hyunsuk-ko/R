@@ -1,0 +1,13 @@
+standard-error	n	p_hat	X
+unnamed-chunk-1	
+unnamed-chunk-2	a	b	me	p_hat	se_p	z
+wald-ci	binom_ci	binom_se	ci_wald	n	p_hat	se_wald	x
+agresti-coull-ci	ci_agresti	n	p_tilde	se_agresti	x
+unnamed-chunk-3	n	p	p_hat	p_tilde	x	.Random.seed
+unnamed-chunk-4	ci_agresti	ci_wald	se_agrsti	se_wald
+unnamed-chunk-5	a_wald	b_wald	captured_p	i	n	N	p	p_hat	se_wald	x
+compare-wald-agresti	df	df_agresti	df_wald	n	N	p	rx
+direct-compare-wald	calc_wald	capture_wald	plot_wald
+direct-compare-ac	calc_agresti	capture_agresti	plot_agresti
+unnamed-chunk-6	n	p
+unnamed-chunk-7	df	n	x

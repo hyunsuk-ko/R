@@ -1,0 +1,56 @@
+#install.packages("moderndive")
+#install.packages("skimr")
+#install.packages("gapminder")
+
+library(tidyverse)
+library(moderndive)
+library(skimr)
+library(gapminder)
+
+# https://moderndive.com/5-regression.html
+
+evals_ch5 <- evals %>%
+  select(ID, score, bty_avg, age)
+
+glimpse(evals_ch5)
+
+evals_ch5 %>%
+  sample_n(size = 5)
+
+evals_ch5 %>%
+  summarize(mean_bty_avg = mean(bty_avg), mean_score = mean(score),
+            median_bty_avg = median(bty_avg), median_score = median(score))
+
+
+evals_ch5 %>% select(score, bty_avg) %>% skim()
+
+
+evals_ch5 %>% 
+  get_correlation(formula = score ~ bty_avg)
+evals_ch5 %>% 
+  summarize(correlation = cor(score, bty_avg))
+
+
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", 
+       y = "Teaching Score",
+       title = "Scatterplot of relationship of teaching and beauty scores")
+
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_jitter() +
+  labs(x = "Beauty Score", y = "Teaching Score",
+       title = "Scatterplot of relationship of teaching and beauty scores")
+
+ggplot(evals_ch5, aes(x = bty_avg, y = score)) +
+  geom_point() +
+  labs(x = "Beauty Score", y = "Teaching Score",
+       title = "Relationship between teaching and beauty scores") +  
+  geom_smooth(method = "lm", se = FALSE)
+
+
+# Fit regression model:
+score_model <- lm(score ~ bty_avg, data = evals_ch5)
+
+# Get regression table:
+get_regression_table(score_model)

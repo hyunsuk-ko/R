@@ -1,0 +1,149 @@
+---
+title: "STAT 240 Discussion 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+```
+
+## Group Name XXX (use the assigned group name)
+
+## Members Present
+
+- ADD THE NAMES OF EVERYONE PRESENT
+- MAKE THE NAME **BOLD** OF THE RESPONSIBLE PERSON TO UPLOAD THE FILES FOR THE GROUP
+
+## Members Absent
+
+- ADD NAMES OF ANY ABSENT MEMBERS
+
+## Grading
+
+The assignment has 6 questions.
+Your groups score will be based on Questions 1, 2, 4, and 6, so do these questions first.
+If you have more time, work to complete the remaining questions.
+
+## Exoplanet Data
+
+We will be working with data on exoplanets; exoplanets are planets orbiting stars outside our Solar System.  The data were pulled from the [NASA Exoplanet Archive](https://exoplanetarchive.ipac.caltech.edu/index.html) on September 3, 2020 (with 4,276 exoplanets confirmed as of this date, but this data set includes planet *candidates* as well).
+
+```{r read-data}
+## Read in the csv file
+## There is one row per exoplanet 
+## Select some variables that we will work with and rename them
+## Remove very massive planet (only to improve plot visuals)
+## Drop missing values; the remaining exoplanets will have estimates of both mass and radius
+planets <- read_csv("exoplanets-3sept2020.csv") %>%
+  select(pl_name, discoverymethod, disc_year, sy_pnum, pl_rade, pl_bmasse) %>%
+  rename(name=pl_name, method=discoverymethod,year=disc_year, number=sy_pnum, radius=pl_rade, mass=pl_bmasse) %>%
+  filter(mass <10000) %>%
+  drop_na() 
+```
+
+The variables we will be working with are defined below.  If you want more details, please see the exoplanet archive [data column definitions](https://exoplanetarchive.ipac.caltech.edu/docs/API_PS_columns.html) (using the column names in the raw data).
+
+`name` = Planet Name
+`method` =  Method by which the planet was first identified
+`year` = Discovery Year (the year it was discovered)
+`number` = Number of Planets
+`radius` = Planet Radius (units: Earth Radius)
+`mass` = Approximate or Minimum Planet Mass (units: Earth Mass)
+
+## Questions
+
+The questions use a subset of the data with only some columns
+and filtering out exoplanets that have missing values in our selected columns.
+
+### Question 1
+
+> Make a scatter plot with `year` (discovery year) on the x-axis and `mass` (the estimate of the planet mass) on the vertical axis.  The `scale_y_log10()` is added to change the y-axis values to a `log10()` scale.
+
+```{r question-1}
+## COMPLETE CODE TO MAKE THIS PLOT
+ggplot(planets, aes(x=year,y=mass)) +
+  geom_point() +
+  scale_y_log10() +
+  xlab("Discovery Year") +
+  ylab("Mass (Earth Mass)") +
+  ggtitle("Exoplanets Mass vs Discovery Year",
+          subtitle = "Using NASA Exoplanet Data")
+```
+
+### Question 2
+
+> Make a scatter plot like the previous problem, but use the `color` aesthetic for `method` (discovery method).
+
+> (Your call to `aes()` will look like `aes(year, mass,color=method)`)
+
+```{r question-2}
+## COMPLETE CODE TO MAKE THIS PLOT
+ggplot(planets, aes(x=year,y=mass,color=method)) +
+  geom_point() +
+  scale_y_log10() +
+  xlab("Discovery Year") +
+  ylab("Mass (Earth Mass)") +
+  ggtitle("Exoplanets Mass vs Discovery Year",
+          subtitle = "Using NASA Exoplanet Data")
+```
+
+### Question 3
+
+> Which method has discovered the lowest mass planets?  
+> Do you notice any pattern between the low mass planets and discovery year?   
+> Which method had the earliest planet discoveries?  
+> (This is using our filtered data which uses exoplanets that have both an estimated mass and an estimated radius; these patterns may not hold in general.)
+
+#### Response
+
+- Transit Method.
+- 
+
+
+### Question 4
+
+> Make a scatter plot like the previous problem,
+> but use the shape aesthetic for Position.
+
+```{r question-4}
+## COMPLETE CODE TO MAKE THIS PLOT
+ggplot(planets, aes(x=year,y=mass, shape=method)) +
+  geom_point() +
+  scale_y_log10() +
+  xlab("Discovery Year") +
+  ylab("Mass (Earth Mass)") +
+  ggtitle("Exoplanets Mass vs Discovery Year",
+          subtitle = "Using NASA Exoplanet Data")
+```
+
+### Question 5
+
+> Does shape or color work better for distinguishing among the discovery methods?
+> Briefly explain.
+
+#### Response
+
+- Easier with colors.
+
+### Question 6
+
+> Another way to display differences by discovery method is to  separate the plot into multiple panels (or facets) and plot different subsets of the data in each.
+> We are going to look at planet mass versus planet radius here (both on log10 scales).
+> Add a comment to say what the code on the next line does where indicated.
+
+```{r question-6}
+ggplot(planets, aes(x=radius, y=mass)) +
+  geom_point() +
+  scale_y_log10() +
+  scale_x_log10() +
+  facet_wrap(~method) +
+  geom_smooth(method="lm") +
+  xlab("Discovery Year") +
+  ylab("Mass (Earth Mass)") +
+  ggtitle("Exoplanets Mass vs Radius",
+          subtitle = "Using NASA Exoplanet Data")
+```
+
+
+

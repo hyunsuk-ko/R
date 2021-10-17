@@ -1,0 +1,220 @@
+---
+title: "Assignment 4"
+author: "HYUN KO"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, fig.height = 3)
+library(tidyverse)
+library(lubridate)
+## Note: this code assumes viridis.R is two steps up the file directory tree
+## Comment it out and use the line below if the file is in the same directory
+## Or comment out both lines if you do not have the file
+source("../../scripts/viridis.R")
+```
+
+#### Due Friday, September 25, 11:59 PM
+
+```{r read-data, echo = FALSE}
+## Read in the csv file
+## Select some variables that we will work with and rename them
+## Remove very massive planet (only to improve plot visuals)
+## Drop missing values; the remaining exoplanets will have estimates of both mass and radius
+planets <- read_csv("../../data/exoplanets-3sept2020.csv") %>%
+  filter(default_flag == 1) %>%
+  select(pl_name, hostname, discoverymethod, disc_year, sy_pnum, pl_rade, pl_bmasse) %>%
+  rename(planet=pl_name, star=hostname, method=discoverymethod,year=disc_year, number=sy_pnum, radius=pl_rade, mass=pl_bmasse)
+```
+
+
+### Problems
+
+### 1
+
+> Calculate the minimum, 25th percentile, mean, median, and maximum value of mass for planets that were discovered using the method `Radial Velocity` or the `Transit` method in the data set. Display these summary statistics separately for each method.
+
+
+
+```{r question-1}
+planets %>%
+  filter(method == 'Transit' | method == 'Radial Velocity') %>%
+  drop_na() %>%
+  group_by(method) %>%
+  summarize( min=min(mass), percentile = quantile(mass, .25), mean=mean(mass), median=median(mass), max=max(mass) )
+```
+
+Do most of these planets have an estimated mass less than, greater than, or about the same as the mass of the Earth?
+
+: Yes. They are huge greater than the mass of the Earth.
+
+
+### 2
+
+> Count the number of exoplanets that have been discovered that have a mass less than or equal to the mass of the Earth, and display the count and minimum and maximum mass of these planets.  Similarly, count the number of exoplanets that have been discovered that have a radius less than or equal to the radius of the Earth, and display the count and minimum and maximum radius of these planets.
+
+```{r question-2}
+planets %>% 
+  filter(mass <= 1) %>%
+  drop_na() %>%
+  summarize(n=n(), min=min(mass), max=max(mass))
+
+planets %>% 
+  filter(radius <= 1) %>%
+  drop_na() %>%
+  summarize(n=n(), min=min(radius), max=max(radius))
+```
+
+
+
+### 3
+> Only a handful of planets have both an estimated mass AND an estimated radius less than those of the Earth.  What are the names of these planets and what method(s) were used to detect them?  Print a data frame that has the star name, planet name, method, mass, and radius of these planets.
+
+```{r problem-3}
+planets %>%
+  filter(mass < 1 & radius < 1) %>%
+  select(planet, star, method, mass, radius)
+```
+
+
+### 4
+
+>  What are the planet names and estimated masses of **all** the detected planets orbiting the host stars from the previous questions?  That is, for all host stars that have at least one planet with an estimate mass AND an estimated radius less than or equal to those of the Earth, what are the names and masses of all their orbiting planets.  You may find it useful to use the command `pull(star)` to extract the column of star names from the previous question.  Arrange these planets from most massive to the least massive.
+
+```{r problem-4}
+planets %>%
+  filter(mass <= 1 & radius <= 1) %>%
+  pull(star)
+```
+
+
+### 5
+>  Which stars hosts the three most massive planet? Display the star name, planet name, method, year, and mass, and add a new variable called `mass_j` that contains the mass in units of Jupiter Mass.  
+Note:  1 Jupiter Mass = 317.8 Earth Mass (approximately)
+
+```{r problem-5}
+planets %>%
+  slice_max(mass, n=3) %>%
+  mutate(mass_j = mass/317.8)
+```
+
+What is the mass (in Jupiter Mass) of the most massive exoplanet, what year and by which method was it detected?
+
+: 55.59525 / 2009 / Radial Velocity
+
+
+### 6
+
+> Create a graph with side-by-side boxplots to compare the distribution of estimated planet mass in Jupiter Mass units by detection method.  Remove the planets that were detected using `Astrometry`, `Disk Kinematics`, `Eclipse Timing Variations`, `Orbital Brightness Modulation`, `Pulsar Timing`, or `Pulsar Timing Variations`.
+Also, remove all values with missing masses; be careful here not remove observations with *any* missing value...you only want to exclude those with missing masses.  In the `geom_boxplot`, set `coef=Inf` (create the plot with and without this setting to see what it does).  Color the boxplots by method and put the y-axis on the `log10` scale using the `trans` option in `scale_y_continuous()`.  The horizontal axis labels may overlap a bit; add this line of code to your ggplot: `theme(axis.text.x = element_text(angle = 45, hjust=1))` and decide if it helps.  Try swiching the value for `angle` and see what happens.
+
+```{r problem-6}
+data<- planets %>%
+  filter(method != "Astrometry") %>%
+  filter(method != "Disk Kinematics") %>%
+  filter(method != "Eclipse Timing Variations") %>%
+  filter(method != "Orbital Brightness Modulation") %>%
+  filter(method != "Pulsar Timing") %>%
+  filter(method != "Pulsar Timing Variations") %>%
+  filter(!is.na(mass))
+
+ggplot(data, aes(x=method, y=mass/317.8, color=method)) +
+  geom_boxplot(coef=Inf) +
+  scale_y_continuous(trans="log10") +
+  theme(axis.text.x = element_text(angle = 45, hjust=1))
+
+```
+
+What does the `coef=Inf` do in the box plot function?
+
+: It extends the stems to the minimum and maximum values rather than plotting the observations classified as outliers as points.
+
+
+What does changing the value for `angle` do?
+
+:  It changes the angle at which the x-axis labels are displayed.
+
+
+From this graphic, does it seem there are differences in the ability of methods to detect exoplanets with different masses?
+
+: Yes.
+
+
+
+### 7
+
+> Make a data frame that excludes exoplanets discovered by the transit method and includes the variables `planet`, `method`, `year`, `radius`, and `mass`.  Remove any of the remaining observations with missing values.
+Use this data frame to create a scatterplot with discovery year on the x-axis and radius on the y-axis.  Plot the symbol color according to discovery method and have the size of the points be according to the estimated mass.  Use the command `scale_size_binned()` to adjust the symbol size `breaks` to be the minimum, 25th percentile, median, 75th percentile, and maximum of the new data frame's mass estimates.  See `?scale_size_binned()` for more details.  Use `labs(color = "Method", size = "Mass")` to adjust the legend labels.
+
+
+```{r problem-7}
+data2<- planets %>%
+  filter(method != 'Transit') %>%
+  select(planet, method, year, radius, mass) %>%
+  drop_na()
+
+mass_breaks <- data2 %>%
+  select(mass) %>%
+  summarize(min=min(mass), q25 = quantile(mass, .25), median=median(mass), q75 = quantile(mass, .75), max=max(mass)) %>%
+  slice(1)
+mass_breaks
+
+ggplot(data2, aes(x=year, y=radius, color=method, size=mass)) +
+  geom_point() +
+  xlab("Discovery Year") +
+  ylab("Estimated raidus (Earth Radius)") +
+  scale_size_binned(breaks=mass_breaks) + 
+  labs(color="Method", size="Mass")
+  
+```
+
+What patterns do you notice in this graphic?  Explain.
+
+:
+- Planets observed using imaginig method tend to have bigger radius.
+- Planets observed using transit method tend to have a wide range of radius detected.
+
+
+### 8
+
+Create a variable called `decade` that assigns the observations to the appropriate decade between 1980 and 2020.  Set the labels to be characters showing the range of years for the decade such as "1981-1990", "1991-2000", etc.  You may find the `cut()` command useful here.  Then make side-by-side box plots of mass by decade.  Add appropriate titles to the x-axis and y-axis and put the y-axis on the `log10` scale using the `trans` option in `scale_y_continuous()`.
+
+```{r problem-8}
+breaks = c(1980, 1990, 2000, 2010, 2020)
+labels = c("1981-1990", "1991-2000", "2001-2010", "2011-2020")
+
+decade_planets<- planets %>%
+  mutate(decades = cut(year, breaks=breaks, labels=labels)) %>%
+  drop_na(mass)
+
+ggplot(decade_planets, aes(x=decades, y=mass)) +
+  geom_boxplot() +
+  scale_y_continuous(trans="log10") +
+  xlab("Decade") +
+  ylab("Mass (Earth Mass")
+```
+What sort of trend is present across decades in terms of the median mass of discovered exoplanets? 
+: The median mass seems decreasing over decades.
+
+
+### 9
+
+The naming convention used for planets is that the first planet discovered has a name that ends with "b" (often the name of the host star followed by the "b").  If a second planet is discovered it will use "c", then "d", etc.  Let's use this convention to find the distribution of planets.  Create a new variable called `planet_order` that pulls the last value of `planet`.  To get the last value, we can use the R package stringr's command `str_sub()`: `str_sub(planet,-1)` (the first input specifies the variable and the -1 grabs the first value from the end).  Then create a bar plot of these values.
+
+```{r problem-9}
+str_planets <- planets %>%
+  mutate(planet_order = str_sub(planet,-1)) %>%
+  group_by(planet_order)
+
+ggplot(str_planets, aes(x=planet_order)) +
+  geom_bar()
+```
+
+There are some planets that do not appear to follow the naming convention.  What years were these planets discovered and by which method? What naming convention is used for these planets?  
+
+: In 2019 & 2020, there are cases that do not follow the naming convention, cases where planet_order are '1' and '2', observed by 'transit' method.
+
+
+
+
+  

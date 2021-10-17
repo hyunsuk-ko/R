@@ -1,0 +1,6 @@
+90번 중 60번 pro-social 택하는 것이
+H0: random이다. p = 0.5. 90번 중 60번 할 확률이 랜덤이다.
+Ha: random 아니고 의도이다. p =\ 0.5
+
+-> X >= 60 or X <=30 은 p가 0.5 아니라는 것을 반증하는 결과들.
+어차피 binormal distribution이니까 X >= 60 일 확률 * 2 = pvalue

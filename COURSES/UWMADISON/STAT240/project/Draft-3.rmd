@@ -1,0 +1,340 @@
+---
+title: "Project Draft"
+output:
+  html_document:
+    df_print: paged
+---
+
+### Members
+- Hyun Ko  
+- **Kyle Yeo**  
+- Riley Larget  
+- Winsten Coellins  
+
+```{r setup, echo=FALSE, include=FALSE, warning=FALSE}
+library(plyr)
+library(tidyverse)
+options(dplyr.summarise.inform = FALSE)
+```
+
+## Introduction
+This analysis was chosen in order to point out several questions people, especially international students studying abroad in the United States, have been asking such as "Does the type of University that I choose have an impact in my income after I graduate?" and "Does the region of University really matter when it comes to getting an income at a workplace?". Therefore, in this analysis, we are going to focus on questions that could answer the concern of people by asking the relation of college type to salary, the college region to salary, and the initial salary to mid-career salary.  
+We found that the type of college makes a big difference in salary and the region of college makes no significant difference in salary, so type of college is more important than region. We also found that the salary increases faster over time for lower starting salaries for all types of college, with the exception of Ivy League colleges.  
+
+### Questions of Interest:
+(a) Is the college type related to salary?  
+(b) Is the college region related to salary?  
+(c) Which undergraduate major has the highest starting median salary?  
+(d) Which undergraduate major has the highest mid career salary?  
+(e) Which school type has the highest starting median salary?  
+(f) Which college type has the highest mid career median salary?  
+(g) Which college region has the highest starting median salary?  
+(h) Which college region has the highest mid career median salary?  
+(i) Between the college region and college type, which one is more important to salary?  
+(j) How does the initial salary relate to the increase in salary over time?  
+
+## Background
+Data consists of three datasets:  
+- degrees-that-pay-back.csv  
+- salaries-by-college-type.csv  
+- salaries-by-region.csv  
+
+### Data Description:
+- Undergraduate Major: majors that are offered in college/university
+- School Name: name of college/university
+- Region: region of college/university
+- School Type: type of college/university
+- Starting Median Salary: fresh graduate starting salary
+- Mid-Career Median Salary: salary after working for certain period of years
+- Percent Change: changes that occurs over years
+- Mid-Career X Percentile: value of a wage below a certain percent of workers fall (X is any percentile)
+
+### Data is taken from:
+- https://www.kaggle.com/wsj/college-salaries
+
+For the rest of the report we are going to tidy up three datasets appropriately and analyze our research questions with the numerical tibbles, graphs and linear models.
+
+## Analysis
+
+### Tidying up the data
+```{r data-cleaning-salaries-college-type, echo=FALSE, include=FALSE, warning=FALSE}
+as_currency <- function(df) { # This is a reformatting function. The original data has salaries as strings like "$79,000.00". This function will convert those into numbers: 79000.
+  df %>%
+  mutate_at(vars(contains("Salary")),str_remove_all,pattern="[$,]") %>%
+  mutate_at(vars(contains("Salary")),as.numeric)
+}
+
+rename_lower <- function(x) { # This is a renaming function to make column names R-compliant
+  str_replace_all(x,"[ -]","_") %>%
+  str_to_lower() %>%
+  str_remove_all("school_")
+}
+
+degree <- read_csv("../data/degrees-that-pay-back.csv") %>%
+  as_currency() %>%
+  rename_with(.cols=everything(),.fn=rename_lower)
+type <- read_csv("../data/salaries-by-college-type.csv") %>%
+  as_currency() %>%
+  rename_with(.cols=everything(),.fn=rename_lower)
+  
+region <- read_csv("../data/salaries-by-region.csv") %>%
+  as_currency() %>%
+  rename_with(.cols=everything(),.fn=rename_lower)
+
+type_and_region <- type %>%
+  inner_join(select(region,`name`,`region`),by="name")
+```
+
+### Numerical summaries
+```{r, echo=FALSE, warning=FALSE}
+
+type_and_region %>%
+  group_by(type) %>%
+  summarise(mean_of_starting_median_salary = mean(starting_median_salary),
+            mean_of_mid_career_median_salary = mean(mid_career_median_salary),
+            sd_of_starting_salary = sd(starting_median_salary, na.rm = FALSE),
+            sd_of_mid_career_salary = sd(starting_median_salary, na.rm = FALSE))
+  
+
+
+type_and_region %>%
+  group_by(region) %>%
+  summarise(mean_of_starting_median_salary = mean(starting_median_salary),
+            mean_of_mid_career_median_salary = mean(mid_career_median_salary),
+            sd_of_starting_salary = sd(starting_median_salary, na.rm = FALSE),
+            sd_of_mid_career_salary = sd(starting_median_salary, na.rm = FALSE))
+```
+
+For the numerical summaries, we made the first tibble, which represent the relationship between type of school and salaries in order to figure out that starting median salary and mid career median salary vary depending on the type of the school. For the second tibble,it represents the relationship between the region of the schools and salaries for figuring out starting median salary and mid career median salary also vary depending on the region of the school.   
+
+```{r, echo=FALSE, warning=FALSE}
+degree %>%
+  group_by(undergraduate_major) %>%
+  summarise(mean_starting = mean(starting_median_salary),
+            mean_mid_career = mean(mid_career_median_salary)) %>%
+  arrange(desc(mean_starting))
+
+
+degree %>%
+  group_by(undergraduate_major) %>%
+  summarise(mean_starting = mean(starting_median_salary),
+            mean_mid_career = mean(mid_career_median_salary)) %>%
+  arrange(desc(mean_mid_career))
+```
+
+We made the above numerical table in order to analyze the relationship between the undergraduate majors and starting and mid career salary.
+
+
+### Graphical summaries
+```{r, echo=FALSE, warning=FALSE,message=FALSE}
+
+type %>%
+  ggplot(aes(x=type,y=starting_median_salary)) +
+  geom_boxplot() +
+  xlab("Type of school") +
+  ylab("Starting_median_salary")
+
+type %>%
+  ggplot(aes(x=type,y=mid_career_median_salary)) +
+  geom_boxplot() +
+  xlab("Type of school") +
+  ylab("Mid_career_median_salary")
+
+type_and_region %>%
+  ggplot(aes(x=type,y=starting_median_salary)) +
+  geom_boxplot() +
+  facet_wrap(~region) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1))
+
+type_and_region %>%
+  ggplot(aes(x=type,y=mid_career_median_salary)) +
+  geom_boxplot() +
+  facet_wrap(~region) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1))
+
+type %>%
+  ggplot(aes(x=starting_median_salary,y=mid_career_median_salary,color=type)) +
+  geom_point(alpha=0.5) +
+  geom_smooth(method = "lm",se=FALSE)
+
+```
+
+For this part, we made a boxplot and linear model with the type of school and salaries for figuring the relationship between the type of school and salary.
+
+
+```{r, echo=FALSE, warning=FALSE,message=FALSE}
+region %>%
+  ggplot(aes(x=region,y=starting_median_salary)) +
+  geom_boxplot() +
+  xlab("Region of school") +
+  ylab("Starting_median_salary")
+
+region %>%
+  ggplot(aes(x=region,y=mid_career_median_salary)) +
+  geom_boxplot() +
+  xlab("Region of school") +
+  ylab("Mid_career_median_salary")
+
+type_and_region %>%
+  ggplot(aes(x=region,y=starting_median_salary)) +
+  geom_boxplot() +
+  facet_wrap(~type) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1))
+
+type_and_region %>%
+  ggplot(aes(x=region,y=mid_career_median_salary)) +
+  geom_boxplot() +
+  facet_wrap(~type) +
+  theme(axis.text.x = element_text(angle = 90,hjust=1))
+
+
+region %>%
+  ggplot(aes(x=starting_median_salary,y=mid_career_median_salary,color=region)) +
+  geom_point(alpha=0.5) +
+  geom_smooth(method = "lm",se=FALSE)
+
+```
+
+For this part, we visualized the relationship between the region of school and mid career median salary with boxplots and a linear model.
+
+```{r t-tests,echo=FALSE}
+type_groups <- type_and_region %>%
+  mutate(type_group = case_when(type %in% c("Engineering","Ivy League")~"High",
+                                TRUE~"Low"))
+
+p_values <- function(df1,df2,comp_var) {
+    return(as.numeric(unlist(t.test(pull(df1,comp_var),pull(df2,comp_var)))["p.value"]))
+}
+
+high_low_start <- p_values(filter(type_groups,type_group=="High"),
+                 filter(type_groups,type_group=="Low"),
+                 "starting_median_salary")
+
+high_low_mid <- p_values(filter(type_groups,type_group=="High"),
+                 filter(type_groups,type_group=="Low"),
+                 "mid_career_median_salary")
+
+eng_low_start <- p_values(filter(type_groups,type=="Engineering"),
+                 filter(type_groups,type_group=="Low"),
+                 "starting_median_salary")
+
+eng_low_mid <- p_values(filter(type_groups,type=="Engineering"),
+                 filter(type_groups,type_group=="Low"),
+                 "mid_career_median_salary")
+
+eng_ivy_start <- p_values(filter(type_groups,type=="Engineering"),
+                 filter(type_groups,type=="Ivy League"),
+                 "starting_median_salary")
+
+eng_ivy_mid <- p_values(filter(type_groups,type=="Engineering"),
+                 filter(type_groups,type=="Ivy League"),
+                 "mid_career_median_salary")
+```
+
+```{r by_type, echo=FALSE, warning=FALSE}
+pipe_lm <- function(formula) {
+  formed <- function(df) {
+      return(lm(formula,data=df))
+  }
+  return(formed)
+}
+
+func_var <- function(func,var) {
+  func_app <- function(df) {
+    return(func(df[var],na.rm=TRUE))
+  }
+  return(func_app)
+}
+  
+
+slope <- function(model) {
+  return(coef(model)[2])
+}
+
+types <- type_and_region %>%
+  group_by(type) %>%
+  nest() %>%
+  mutate(model = map(data, pipe_lm(mid_career_median_salary~starting_median_salary)),
+         salary_dependence = map(model,slope),
+         min_start = map(data,func_var(min,"starting_median_salary")),
+         min_mid_career = map(data,func_var(min,"mid_career_median_salary")),
+         max_start = map(data,func_var(max,"starting_median_salary")),
+         max_mid_career = map(data,func_var(max,"mid_career_median_salary"))
+         )
+
+
+regions <- type_and_region %>%
+  group_by(region) %>%
+  nest() %>%
+  mutate(model = map(data, pipe_lm(mid_career_median_salary~starting_median_salary)),
+         salary_dependence = map(model,slope),
+         min_start = map(data,func_var(min,"starting_median_salary")),
+         min_mid_career = map(data,func_var(min,"mid_career_median_salary")),
+         max_start = map(data,func_var(max,"starting_median_salary")),
+         max_mid_career = map(data,func_var(max,"mid_career_median_salary"))
+         )
+
+types %>%
+  select(type,salary_dependence,contains(c("start","mid"))) %>%
+  unnest(cols=everything()) %>%
+  arrange(desc(salary_dependence))
+
+
+regions %>%
+  select(region,salary_dependence,contains(c("start","mid"))) %>%
+  unnest(cols=everything()) %>%
+  arrange(desc(salary_dependence))
+  
+```
+
+We calculated the slope of each types of school and region with respect to starting salary and mid career salary.
+With the results, we can see the way how does the initial salary relate to the increase in salary over time.
+
+
+## Discussion
+
+### Provide broader interpretations of your analysis and describe how to interpret your results with respect to your questions of interest & Summarize your primary conclusions and the primary evidence that supports these conclusions.
+
+
+Using the numerical summaries, we can see that Ivy league schools have the highest mean of both starting median salary and mid career median salary and California has the highest starting median salary while the Northeastern region has the highest mid career median salary. From the numerical summaries with degree data, we found that Physician Assistant major has the highest starting median salary and Chemical Engineering major has the highest mid career median salary.  
+For starting median salary, there is a clear dichotomy separating Ivy League and Engineering schools from the other schools. Once mid-career is reached, this gap still exists but it appears to narrow from the graph.  
+$H_0 : \mu_{Eng,Ivy} = \mu_{Lib,State,Party}$  
+$H_a : \mu_{Eng,Ivy} \ne \mu_{Lib,State,Party}$  
+For starting median salary, p-value = `r high_low_start` < 0.01. Therefore we can reject the null hypothesis that they have the same mean.  
+For mid-career median salary, p-value = `r high_low_mid` < 0.01. Therefore we can reject the null hypothesis that they have the same mean.  
+Liberal Arts schools have the fastest closing rate followed by State schools. Ivy League schools begin to separate with higher salaries than Engineering.  
+$H_0 : \mu_{Eng} = \mu_{Ivy}$  
+$H_a : \mu_{Eng} \ne \mu_{Ivy}$  
+For the starting median salary, p-value = `r eng_ivy_start` > 0.05. Therefore we cannot reject the null hypothesis that they have the same mean.  
+For the mid-career median salary, p-value = `r eng_ivy_mid` < 0.01. Therefore we can reject the null hypothesis that they have the same mean.  
+
+This could be caused by post-graduate education (Law and Medical School), but that is not available in the data. For salary growth, Ivy League schools have the highest growth rate of all school types, followed by Liberal Arts, State, Party and Engineering. From the best fit slopes, we see that the starting median salary is most strongly related to mid-career median salary for Liberal Arts schools and least strongly related for Ivy League schools.  
+There is minimal separation by region. For example with Party schools:  
+$H_0 : \mu_{Party-CA,NE} = \mu_{Party-other}$  
+$H_a : \mu_{Party-CA,NE} \ne \mu_{Party-other}$  
+For the starting median salary, p-value = `r p_values(filter(type_groups,type=="Party",region %in% c("California","Northeastern")),filter(type_groups,type=="Party",!(region %in% c("California","Northeastern"))),"starting_median_salary")` > 0.05. Therefore we cannot reject the null hypothesis that they have the same mean.  
+For the mid-career median salary, p-value = `r p_values(filter(type_groups,type=="Party",region %in% c("California","Northeastern")),filter(type_groups,type=="Party",!(region %in% c("California","Northeastern"))),"mid_career_median_salary")` > 0.05. Therefore we cannot reject the null hypothesis that they have the same mean.  
+Where this does occur, it appears to be caused by difference in type of school by region. For example, California has the highest paying Engineering schools and the Northeast has Ivy League schools.  
+
+### Discuss any potential short-comings of the analysis.
+
+
+(a) Some of the school presented in the data has more than one school type, therefore, it could affect the result that we have done  
+
+(b) The degree data only has undergraduate major information, not with the school name so that it cannot be used with the type and region data.  
+
+(c) There's no information about graduate school by school or major.  
+
+### Potential future directions for additional work
+
+#### Different methods to address the same questions
+
+- We could do hypothesis testing to our question whether our result is significant enough or not by using the p-value.  
+
+#### New questions
+
+- Does the same major from different universities have different salaries?  
+
+
+#### New data you might collect to refine your understanding
+- Our current degree data only has the undergraduate majors with salary by stages. In order to address the new question, we need to collect the data that contains not only the majors, but also the school names with salary.

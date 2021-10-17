@@ -1,0 +1,21 @@
+graph-ho	gbinom	geom_vline	theme_bw
+extreme-x	<	dbinom	pbinom	sum
+graph-esp	gbinom	geom_vline	theme_bw
+esp-pvalue	pbinom
+read-data	%>%	~	actor	case_when	everything	mutate	partner	read_csv	select	with_partner
+problem-1	%>%	==	actor	chimps	filter	group_by	n	prosocial	selfish	sum	summarize	with_partner
+problem-1b	$	%>%	^	c	mutate	n	p_tilde	prosocial	qnorm	sqrt
+problem-1c	$	%>%	chimp_c	diff	est	p_hat_1	p_hat_2	qnorm	rbinom	sd	se	summarize	tibble	z
+problem-1c-plot	$	aes	df	diff	geom_density	geom_norm_density	ggplot	mean	sd	theme_bw
+problem-1d	%>%	abs	chimp_c	est	n	n_1	n_2	p_hat	p_pool	pnorm	prosocial	se_pool	sqrt	sum	summarize	ungroup	z
+problem-1e	$	>=	abs	df_d	diff	mean	p_hat_1	p_hat_2	rbinom	tibble
+problem-1e-figure	$	aes	df_e	diff	geom_density	geom_norm_density	ggplot	mean	sd	theme_bw
+unnamed-chunk-1	%>%	actor	chimps	distinct
+problem-2	%>%	==	actor	chimps	filter	group_by	n	prosocial	selfish	sum	summarize	ungroup	with_partner
+LRT-calculations	%>%	dbinom	exp	log_L0	log_L1	mutate	n	p_0	p_hat	prosocial	sum	summarize
+chisq-p-value	$	%>%	gchisq	geom_chisq_fill	mutate	pchisq	qchisq	theme_bw
+lrt-randomization-1	$	%>%	dbinom	df_2	log_L0	log_L1	mutate	n	p_0	p_hat	prosocial	return	sum	summarize
+lrt-randomization-2	$	dbinom	df_2	return	sum
+lrt-time	df_2	for	lrt_stat	lrt_stat_vector	system.time
+lrt-randomization-3	%>%	[<-	for	lrt_stat_vector	mutate	n	nrow	numeric	prosocial	pull	rbinom	return	sum	summarize
+lrt-randomization-4	%>%	>=	aes	df_2	geom_chisq_density	geom_chisq_fill	geom_density	ggplot	lrt_randomization	lrt_stat	mean	n	pchisq	prosocial	select	signif	theme_bw	tibble

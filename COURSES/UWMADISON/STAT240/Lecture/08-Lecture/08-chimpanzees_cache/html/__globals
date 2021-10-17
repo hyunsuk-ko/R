@@ -1,0 +1,13 @@
+standard-error	round	sqrt
+unnamed-chunk-1	qnorm
+unnamed-chunk-2	aes	geom_norm_fill	geom_vline	gnorm	pnorm
+wald-ci	c	qnorm	return	sqrt
+agresti-coull-ci	binom_ci	binom_se
+unnamed-chunk-3	rbinom	set.seed
+unnamed-chunk-4	binom_ci	binom_se	n	p_hat	p_tilde	rbind	se_agresti
+unnamed-chunk-5	&	[<-	<=	>=	binom_se	for	ifelse	mean	qnorm	rbinom	rep	set.seed	sum
+compare-wald-agresti	$	%>%	&	<=	>=	a_agresti	a_wald	b_agresti	b_wald	binom_se	filter	hist	max	mean	min	p_hat	p_tilde	qnorm	rbinom	rep	se_agresti	se_wald	set.seed	summarize	tibble	x
+direct-compare-wald	%>%	&	[<-	<	a	aes	b	d	dbinom	filter	for	geom_hline	geom_line	ggplot	ggtitle	length	numeric	p	p_hat	paste	prob	pull	qnorm	return	se	seq	sqrt	sum	summarize	theme_bw	tibble	x
+direct-compare-ac	%>%	&	[<-	<	a	aes	b	d	dbinom	filter	for	geom_hline	geom_line	ggplot	ggtitle	length	numeric	p	p_tilde	paste	prob	pull	qnorm	return	se	seq	sqrt	sum	summarize	theme_bw	tibble	x
+unnamed-chunk-6	gbinom
+unnamed-chunk-7	aes	dbinom	geom_point	geom_vline	ggplot	ggtitle	L	paste0	pseq	rbinom	seq	set.seed	tibble	xlab	ylab

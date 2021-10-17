@@ -1,0 +1,21 @@
+graph-ho	
+extreme-x	p_value	tol	x	x_extreme
+graph-esp	
+esp-pvalue	p_value
+read-data	chimps	.Random.seed
+problem-1	chimp_c
+problem-1b	chimp_c	ci_c_diff	est_c_diff	se_c_diff	z
+problem-1c	ci_rand	df	N
+problem-1c-plot	
+problem-1d	df_d
+problem-1e	df_e	N	p_value_e
+problem-1e-figure	
+unnamed-chunk-1	
+problem-2	df_2	df_2_0
+LRT-calculations	df_2	lrt
+chisq-p-value	lrt
+lrt-randomization-1	lrt_stat
+lrt-randomization-2	lrt_stat_vector
+lrt-time	i
+lrt-randomization-3	lrt_randomization
+lrt-randomization-4	df_lrt	lrt	lrt_0	p_value

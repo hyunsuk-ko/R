@@ -1,0 +1,345 @@
+---
+title: "STAT 240 Discussion 11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+library(lubridate)
+source("../../scripts/viridis.R")
+source("../../scripts/ggprob.R")
+```
+
+## Group 325 - 4 
+
+## Members Present
+
+**Riley Larget**  
+Kyle Yeo  
+Hyun Ko  
+Winsten Coellins  
+
+## Members Absent
+
+None
+
+## Background
+
+We have used R many times in the course for simulations. Examples include:
+
+- simulating the sampling distribution of a test statistic under the null hypothesis to calculate a p-value
+- resampling a sample to estimate a standard error
+- calculating the actual capture probability of a purported 95% confidence interval procedure
+
+There are many problems in statistics where a mathematical derivation can be used to find a formula for a mean or a standard error or a probability. But there are many problems where the math is either too hard or does not exist, but a simulation can provide an accurate numerical estimate of the quantity of interest.
+
+In this discussion assignment, you will write code to do simulations for several new examples.
+A useful function is `sample()`.
+A standard use is
+
+```{r eval=FALSE}
+sample(x, size=50, replace=TRUE)
+```
+
+which will take a sample with replacement of size 50 from a vector of values `x`.
+
+## Example
+
+> The code block below creates a data frame with a variable `wait` which represents the maximum waiting time among all US passport holders that arrive on an international flight at Chicago's O'Hare airport within an hour between the times of 8am and 8pm in 2018.
+The data is the complete record and we will consider this to be our population.
+
+> As an example, consider the sampling distribution of the median of a sample of size 50 from this population. We can calculate the median of the population, but what is the standard error of the sample median for a random sample of size 50?
+
+```{r airport, fig.height=2}
+## Read and format the data
+chicago = read_csv2("../../data/chicago-2018.csv") %>%
+  filter(hour >= "0800 - 0900" & hour <= "1900 - 2000") %>%
+  select(us_max_wait) %>%
+  rename(wait = us_max_wait)
+
+## Plot the density
+ggplot(chicago, aes(x=wait)) +
+  geom_density(fill=viridis3[1]) +
+  theme_bw()
+
+## Calculate the population median
+chicago %>%
+  summarize(median = median(wait))
+
+## Use simulation to estimate the sampling distribution of the sample median.
+
+## Make a vector with the data we from which we want to sample
+chi_wait = chicago %>%
+  pull(wait)
+
+## Create the number of times we want to do the simulation
+##   and the sample size as objects in R
+B = 10000
+n = 50
+
+## Create a container to hold the sample median wait times
+median_50 = numeric(B)
+
+## Use a for loop to do the simulation
+for ( i in 1:B )
+{
+  median_50[i] = median( sample(chi_wait, n, replace=TRUE) )
+}
+
+## The standard deviation of this sample is a numerical estimate of the standard error of the sampling distribution
+se_50 = sd(median_50)
+se_50
+
+## Are about 95% of the sample medians within 1.96 SEs of the mean of this distribution?
+mean(abs(median_50 - mean(median_50)) < 1.96*se_50)
+
+## Make a plot
+tibble(median_50) %>%
+ggplot(aes(x=median_50)) +
+  geom_density(fill=viridis3[1]) +
+  ggtitle("Sample median, n=50",
+          subtitle="Chicago O'Hare hourly maximum waiting time") +
+  theme_bw()
+```
+
+## Problems
+
+### 1
+
+> For the Chicago wait time data in the example:
+
+### 1A
+
+> Use simulation to find the standard error of the sampling distribution of the sample median if the sample size is $n=5$ and plot the sampling distribution.
+
+```{r problem-1}
+median_5 <- numeric(B)
+for ( i in 1:B )
+{
+  median_5[i] = median( sample(chi_wait, 5, replace=TRUE) )
+}
+
+se_5 <- sd(median_5)
+tibble(median_5) %>%
+ggplot(aes(x=median_5)) +
+  geom_density(fill=viridis3[1]) +
+  ggtitle("Sample median, n=5",
+          subtitle="Chicago O'Hare hourly maximum waiting time") +
+  theme_bw()
+
+mode_5 <- tibble(median_5) %>%
+  count(median_5) %>%
+  slice_max(n,n=1)
+  
+```
+
+Standard error of the sampling distribution of the sample median for sample size $n=5$ is `r se_5`.
+
+### 1B
+
+> Describe the shape of the sampling distribution:
+where is the mode or modes, describe any skew.
+
+There is one mode at `r mode_5$median_5`. It is skewed right compared to a normal distribution (larger right tail).
+
+### 1C
+
+> Are about 95% of the observations within 1.96 standard errors of the distribution?
+
+```{r}
+mean(abs(median_5 - mean(median_5)) < 1.96*se_5)
+```
+
+Yes, `r mean(abs(median_5 - mean(median_5)) < 1.96*se_5)*100`% of the observations are within 1.96 standard errors.
+
+### 2
+
+> Repeat problem 1, but use the 0.90 quantile from a sample of size 50.
+
+```{r problem-2}
+median_50 <- numeric(B)
+for ( i in 1:B )
+{
+  median_50[i] = quantile( sample(chi_wait, 50, replace=TRUE) ,0.90)
+}
+
+se_50 <- sd(median_50)
+tibble(median_50) %>%
+ggplot(aes(x=median_50)) +
+  geom_density(fill=viridis3[1]) +
+  ggtitle("Sample median, n=50",
+          subtitle="Chicago O'Hare hourly maximum waiting time") +
+  theme_bw()
+
+mode_50 <- tibble(median_50) %>%
+  count(median_50) %>%
+  slice_max(n,n=1)
+```
+
+Standard error of the sampling distribution of the sample median for sample size $n=50$ is `r se_50`.
+
+### 2B
+
+> Describe the shape of the sampling distribution:
+where is the mode or modes, describe any skew.
+
+There is one mode at `r mode_50$median_50`. The sampling distribution is almost bell-shaped, with little skew.
+
+### 2C
+
+> Are about 95% of the observations within 1.96 standard errors of the distribution?
+
+```{r}
+mean(abs(median_50 - mean(median_50)) < 1.96*se_50)
+```
+
+Yes, `r mean(abs(median_50 - mean(median_50)) < 1.96*se_50)*100`% of the observations are within 1.96 standard errors.
+
+### 3
+
+> Theory informs us that the mean and variance of a chi-square distribution with $v$ degrees of freedom are $v$ and $2v$, respectively. Use the function `rchisq()` to take samples of size 100,000 random chi-square random variables when $v$ is 1, 5, and 10 and see if the results are consistent with theory.
+Use `mean()` and `var()` to calculate the mean and variance of the samples.
+
+```{r problem-3}
+N <- 100000
+chi_1 <- rchisq(N,1)
+chi_5 <- rchisq(N,5)
+chi_10 <- rchisq(N,10)
+
+mean(chi_1)
+var(chi_1)
+
+mean(chi_5)
+var(chi_5)
+
+mean(chi_10)
+var(chi_10)
+```
+
+The simulated results are consistent with theory.
+
+### 4
+
+> For large samples and under some other assumptions, the likelihood ratio test statistic has an approximate chi-square distribution. But this might not hold for small samples. Consider the following data set of five draws from a binomial distribution with $n=3$ and $p$ unknown.
+$\mathbf{x} = (1,0,3,3,0)$, where the possible values of $x$ are 0, 1, 2, and 3 and the following hypotheses:
+
+$$
+H_0: X_i \sim \text{Binomial}(3,p) \quad \text{for $i=1,\ldots,5$}
+$$
+$$
+H_a: X_i \sim F \quad \text{for $i=1,\ldots,5$}
+$$
+
+> where $F$ is a distribution with parameters $p_x$ for $x=0,1,2,3$ and $P(X=x) = p_x$.
+
+> The following code will calculate the likelihood ratio test statistic.
+
+```{r lrt}
+## Estimate p from a tabulated binomial sample
+est_p0 = function(x)
+{
+  n = length(x) - 1
+  p_hat = sum((0:n)*x)/(n*sum(x))
+  return ( p_hat )
+}
+
+## Estimate all p_i from a tabulated sample
+est_p1 = function(x)
+{
+  p = x/sum(x)
+  return ( p )
+}
+
+## Calculate G, the LRT test statistic
+lrt = function(x)
+{
+  n = length(x) - 1
+  p0 = est_p0(x)
+  logl_0 = sum(x[x>0]*dbinom(0:n,n,p0,log=TRUE)[x>0])
+  p1 = est_p1(x)
+  logl_1 = sum(x[x>0]*log(p1)[x>0])
+  G = 2 * (logl_1 - logl_0)
+  return( G )
+}
+```
+
+> Here is a calculation for the sample data.
+
+```{r example}
+x = c(1,0,3,3,0)
+tab_x = tabulate(x+1,4)
+test_stat = lrt(tab_x)
+test_stat
+```
+
+> Answer the questions embedded in the code.
+
+```{r problem-4, fig.height=2}
+B = 10000
+
+### 4A. What does the next line of code do?
+lrt_sample = numeric(B)
+###
+
+n = 3
+p0 = est_p0(x)
+m = length(x)
+
+for ( i in 1:B )
+{
+  ### 4B. Why is the sample generated from a binomial distribution?
+  x_sample = rbinom(m,n,p0)
+  ###
+  lrt_sample[i] = lrt(tabulate(x_sample+1,n+1))
+}
+
+df = tibble(lrt = lrt_sample)
+
+### 4C. Describe differences between the approximate density of the simulated sampling distribution (black curve) with the chi-square density with two degrees of freedom
+ggplot(df, aes(x=lrt)) +
+  geom_density() +
+  ### 4D. Why does the chi-square distribution for comparison have 2 degrees of freedom?
+  geom_chisq_density(2) +
+  geom_chisq_fill(2, alpha = 0.2, fill = "blue") +
+  geom_vline(xintercept = test_stat,
+             color="red", linetype="dashed") +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  theme_minimal()
+
+### 4E. What would the mean and variance of the simulated LRT sampling distribution values be close to if this simulated distribution was well approximated by the theoretical chi-square distribution?
+mean(lrt_sample)
+var(lrt_sample)
+
+### P-value by simulation
+mean(lrt_sample >= test_stat)
+### P-value by chi-square distribution
+1 - pchisq(test_stat,2)
+
+### 4F. Why does the chi-square p-value calculation use 1 - pchisq()?
+```
+
+#### 4A
+
+`lrt_sample = numeric(B)` creates storage for the calculated lrt samples.
+
+#### 4B
+
+The true distribution that the values were produced from is a binomial distribution.
+
+#### 4C
+
+The approximate density varies around the chi-squared density.
+
+#### 4D
+
+In $H_a$, there are four parameters $p_x$ but one is determined from the rest since $\sum{p_x} = 1$. In $H_0$, there is one parameter $p$. 4 - 1 - 1 = 2 degrees of freedom difference between the models.
+
+#### 4E
+
+Since the chi-squared distribution has 2 degrees of freedom in this case, the mean of the test statistic should be approximately 2 and the variance should be approximately 4.
+
+#### 4F
+
+`pchisq()` calculates the probability under the chi-squared distribution less than the calculated test statistic, but we want the p-value as the probability under the chi-squared distribution greater than or equal to the calculated test statistic.
