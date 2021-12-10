@@ -1,0 +1,241 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+# STAT 304 Homework 3
+We'll grade your homework by opening your "HW3.Rmd" file in RStudio (in a directory containing "farm.csv"), clicking "Knit", reading the HTML output, and reading your "HW3.Rmd" file. You should write R code anywhere you see an empty R code chunk.
+
+Name: HYUN KO
+
+Email: hko26@wisc.edu
+
+# Part 1: A "jackknife" procedure to find the most outlying point in a linear relationship between two variables
+
+First load the "XML" package to give access to `readHTMLTable()` and the "RCurl" package for access to `getURL()`.
+```{r}
+if (!require("XML")) {
+  install.packages("XML") # do this once per lifetime
+  stopifnot(require("XML")) # do this once per session
+}
+if (!require("RCurl")) {
+  install.packages("RCurl") # do this once per lifetime
+  stopifnot(require("RCurl")) # do this once per session
+}
+```
+
+Use R to get the land area (sq. miles) of each of the 50 states from the web page https://simple.wikipedia.org/wiki/List_of_U.S._states_and_territories_by_area. Hint: you can use `readHTMLTable(readLines(curl("https://simple.wikipedia.org/wiki/List_of_U.S._states_by_area")), stringsAsFactors = FALSE)` to read the data. Include code to select only the 50 states and to remove the commas from the numbers.
+```{r}
+library("curl")
+cols = c("State", "Total area(rank)", "Total area(sq mi)", "Total area(km²)", "Land area(Rank)", "Land area(sq mi)", "Land area(km²)", "Land area(% land)", "Water(Rank)", "Water(sq mi)", "Water(km²)", "Water(% water)")
+table = readHTMLTable(readLines(curl("https://simple.wikipedia.org/wiki/List_of_U.S._states_by_area")), stringsAsFactors = FALSE, skip.rows = 1:2)[[1]][1:50, ]
+colnames(table) <- cols
+table$`Total area(rank)` <- as.numeric(table$`Total area(rank)`)
+table$`Total area(sq mi)` <- as.numeric(gsub(",", "", table$`Total area(sq mi)`))
+table$`Total area(km²)` <- as.numeric(gsub(",", "", table$`Total area(km²)` ))
+table$`Land area(Rank)`<- as.numeric(table$`Land area(Rank)`)
+table$`Land area(sq mi)` <- as.numeric(gsub(",", "", table$`Land area(sq mi)` ))
+table$`Land area(km²)` <- as.numeric(gsub(",", "", table$`Land area(km²)`))
+table$`Water(Rank)` <- as.numeric(table$`Water(Rank)`)
+table$`Water(sq mi)` <- as.numeric(gsub(",", "", table$`Water(sq mi)`))
+table$`Water(km²)` <- as.numeric(gsub(",", "", table$`Water(km²)`))
+table$`Water(% water)`<- as.numeric(gsub("%", "", table$`Water(% water)`))
+table
+```
+
+Use R to get farm areas of states from "farm.csv".
+```{r}
+farm <- read.csv("farm.csv")
+farm
+
+state_names <- farm$state
+farm.areas <- farm$sq.miles
+```
+
+Create a data frame called "area" whose columns are "state", "farm", and "land", which contain state names, farm areas, and land areas, respectively. Hint: the states aren't in the same order in the two data sets, so getting the "area" data frame right requires a little care.
+```{r}
+colnames(farm) <- c("state", "farm")
+area <- farm
+for (i in 1:50) {
+  area$land[i] = table[table$State== state_names[i], 6]
+}
+area
+```
+
+
+Make a scatterplot of y = farm area vs. x = land area.
+```{r}
+plot(x=area$land, y=area$farm, xlab = "land area", ylab = "farm area", main = "Scatter plot of land area vs farm area")
+```
+
+There are two prominent outliers. Use `identify()` to find their indices.
+Unfortunately, `identify()` doesn't work on an R graph that we're viewing through an HTML page. To find the outliers, run your code in the Console so you can click on the graph in RStudio's "Plots" tab. Once you know the indices of the outliers, just assign them to variables so you can use them later.
+```{r}
+idx_1 = 2 # Alaska
+idx_2 = 43 # Texas
+```
+
+The two outliers are Texas, which fits the roughly linear trend of the rest of the data, and Alaska, which does not fit.
+
+Make a linear model of y = farm area vs. x = land area. Make your scatterplot again, and this time add the regression line to it. Then make a linear model of the same data, except with Alaska removed. Add that regression line, colored red, to your scatterplot.
+```{r}
+model_1 = lm(area$farm ~ area$land)
+intercept = model_1$coefficients[1]
+slope = model_1$coefficients[2]
+plot(x=area$land, y=area$farm, xlab = "land area", ylab = "farm area", main = "Scatter plot of land area vs farm area")
+abline(a = intercept, b = slope, col="blue")
+```
+
+```{r}
+woalska <- area[-2,]
+#woalska
+model_2 = lm(woalska$farm ~ woalska$land)
+intercept = model_2$coefficients[1]
+slope = model_2$coefficients[2]
+plot(x=woalska$land, y=woalska$farm, xlab = "land area", ylab = "farm area", main = "Scatter plot of land area vs farm area (w/o Alaska)")
+abline(a = intercept, b = slope, col="red")
+```
+
+Notice that, with respect to the original regression line, Texas has the biggest residual (difference in actual and predicted y), because Alaska pulled the line down toward itself. But really Alaska is the outlier! Next we'll do a "jackknife" procedure to discover computationally that Alaska is the most important outlier.
+
+Make a plot of the residuals for the original model. (Hint: they're available in the output of `lm()`.)
+```{r}
+model_1 = lm(area$farm ~ area$land)
+res <- resid(model_1)
+plot(fitted(model_1), res)
+abline(0,0)
+```
+
+Notice again that the Texas residual is bigger than the Alaska residual.
+
+Next use a loop to create n=50 models. In step i, make a model of the data with observation i removed. Then predict the value of y[i] from that model, and find the residual (difference) between (the removed) y[i] and the prediction. Save these residuals in a vector `r.jack`. (A "jackknife" procedure works by removing one observation (or several) from a data set, and then making a prediction from that smaller data set, and repeating this for each observation.)
+```{r}
+r.jack <- c()
+for (i in 1:50) {
+  removed.x <- area$land[i]
+  removed.y <- area$farm[i]
+  data <- area[-i, ]
+  model <- lm(data$farm ~ data$land)
+  y.intercept <- model$coefficients[1]
+  slope <- model$coefficients[2]
+  y_hat <- slope * removed.x + y.intercept
+  residual <- removed.y - y_hat
+  #print(residual)
+  r.jack <- append(r.jack, residual)
+}
+r.jack
+```
+
+Plot these "jackknife" residuals.
+```{r}
+plot(area$land, r.jack, xlab = "land area", ylab = "jacknife residuals")
+abline(0,0, col = "red")
+```
+
+Notice now that Alaska is clearly the real outlier.
+
+# Part 2: Web-scraping
+
+Here we figure out which people produced the most movies in the IMDB Top Rated Movies list. (An example related to this search is the NFL web scraping code discussed in lecture.)
+
+```{r}
+rm(list=ls())
+```
+
+First load the "XML" package to give access to `readHTMLTable()` and the "RCurl" package for access to `getURL()`.
+```{r}
+if (!require("XML")) {
+  install.packages("XML") # do this once per lifetime
+  stopifnot(require("XML")) # do this once per session
+}
+if (!require("RCurl")) {
+  install.packages("RCurl") # do this once per lifetime
+  stopifnot(require("RCurl")) # do this once per session
+}
+```
+
+At the bottom of the [Internet Movie Database website](http://www.imdb.com) there's a link to the [Top Rated Movies](http://www.imdb.com/chart/top). At this page there's a list of 250 movies, with a link to each movie. The first movie is [The Shawshank Redmption](http://www.imdb.com/title/tt0111161/?ref_=chttp_tt_1).
+
+With your browser on the "Top Rated Movies" page, you can do "right-click > view page source" (in Firefox or Chrome; in Safari, first do "Safari > Preferences > Advanced" and check "Show Develop menu in menu bar"; then do Develop > Show Page Source) to see the HTML code that creates the page. (You do not need to learn HTML for this homework.)
+
+Search in the HTML source page for "Shawshank", and you'll see that it occurs twice, around line 1125 in an `<img .../>` tag and around line 1130 in a `<a.../a>` tag. Search for "Godfather", and you'll see that it occurs four times around lines 1165 and 1165 for "The Godfather" and around lines 1205 and 1210 for "The Godfather: Part II". For each of these three `<a...</a>` lines, the preceding line contains a link, relative to the main IMDB URL, to that movie's page. Use grep() to figure out what small string is common to the 250 lines, like these three, that contain links to the top 250 movies.
+
+Notice that line 774 for "The Shawshank Redemption" includes the text "/title/tt0111161". Pasting this onto "http://www.imdb.com" gives "http://www.imdb.com/title/tt0111161", which is a link to the first movie's page. Adding "/fullcredits" gives "http://www.imdb.com/title/tt0111161/fullcredits", which is a link to the full cast and crew. Search this "fullcredits" page for "Produced" and you'll see that "The Shawshank Redemption" was produced by "Liz Glotter", "David V. Lester", and "Niki Marvin".
+
+Write code that does the following:
+
+* Use `readLines()` to read "http://www.imdb.com/chart/top" into a character string vector
+    + Select the 250 lines containing links to the 250 movies
+    + From these 250 lines, select the 250 strings like "/title/tt0111161" from which you can form links to the 250 movies (well, there seem to be 251 lines, and then 251 strings that contain one duplicate; see `?unique` to remove the duplicate)
+* Create an empty list of producers, e.g. `producers = list()`
+* For each movie, read its "fullcredits" page
+    + Strip out the title of the movie
+    + Use `readHTMLTable(getURL())` to read all the tables into a list of dataframes; figure out which dataframe has the producers; you will need to replace "http" with "https" in each movie's fullcredits URL (like "http://www.imdb.com/title/tt0111161/fullcredits") to get `readHTMLTable(getURL())` to work
+    + Save the vector of producers in a list, doing something like `producers[[title]] = ...`, where `...` is the vector of producers you found
+* Do `unlist(producers)` to convert your list of title / producer vector pairs into a named vector of producers.
+    + Use `table()` to make a table of counts from this vector
+    + Display the 5 producers who produced the most movies from among these 250
+
+```{r}
+MOVIES = "http://www.imdb.com/chart/top"
+lines = readLines(MOVIES)
+```
+
+
+```{r}
+# + Select the 250 lines containing links to the 250 movies
+link.vectors = c()
+link.lines = grep("/title/tt", x = lines, value = TRUE)
+result = gsub(pattern = "(<a href=\")(/.+)(pf_rd_m=.+)", replacement = "\\2", link.lines)
+link.vectors = append(link.vectors, substr(result,1,16))
+links = c()
+
+for (i in seq(1, 500, 2)) {
+  links = append(links, link.vectors[i])
+}
+```
+
+```{r}
+# + From these 250 lines, select the 250 strings like "/title/tt0111161" from which you can form links to the 250 movies
+title.vectors = c()
+title.lines = grep("title=", x = lines, value = TRUE)
+result = gsub(pattern = "(title=.+>)(.+)(</a>)", replacement = "\\2", title.lines)[3:501]
+title.vectors = append(title.vectors, result)
+titles = c()
+for (i in seq(1,500,2)) {
+  titles = append(titles, title.vectors[i])
+}
+titles = unique(titles)
+```
+
+```{r}
+#  + Use `readHTMLTable(getURL())` to read all the tables into a list of dataframes; figure out which dataframe has the producers; you will need to replace "http" with "https" in each movie's fullcredits URL (like "http://www.imdb.com/title/tt0111161/fullcredits") to get `readHTMLTable(getURL())` to work
+producers = list()
+for (i in 1:250) {
+  link = paste0("https://www.imdb.com/", links[i], "/fullcredits")
+  table = readHTMLTable(readLines(curl(link)), stringsAsFactors = FALSE)[[4]]
+  pd = table$V1
+  title = titles[i]
+  producers[[title]] = pd
+}
+```
+
+```{r}
+#* Do `unlist(producers)` to convert your list of title / producer vector pairs into a named vector of producers.
+#    + Use `table()` to make a table of counts from this vector
+#    + Display the 5 producers who produced the most movies from among these 250
+producers.table <- table(unname(unlist(producers)))
+df <- data.frame(producers.table)
+colnames(df) <- c("Producer", "Number")
+df[order(-df$Number), ][1:5,]
+```
+
+# Extra Practice (not required)
+
+* Collect Year, Director, Rating, Number of Votes and Cast (first billed only)
+* For each actor, count how many times he or she starred in a Top 250 Movie. Show the 10 actors/actresses that starred in the most movies among the Top 250. Show the 10 actors/actresses that starred in movies among the Top 250 with the highest mean rating.
+* For each director, count how many times he or she directed a Top 250 Movie. Show the 10 directors that directed the most movies among the Top 250. Show the 10 directors that directed movies among the Top 250 with the highest mean rating.
+* Show the 10 most frequent Actor-Director collaborations among the Top 250 Movies. What's the average rating for those collaborations?
+* Are ratings influenced by year? In what way? Provide a P-value using linear regression. Are the assumptions of linear regression violated? If so, what's the impact in your P-value estimate?
+* Do people vote more often for recent movies? Provide a P-value using linear regression. Are the assumptions of linear regression violated? If so, what's the impact in your P-value estimate?
+* In light of the previous question, do you think the number of votes influences the rating? Create an analysis of variance table for the ratings, considering year, votes and the interaction of year and votes. Explain what the interaction means.
